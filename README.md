@@ -112,23 +112,14 @@ revenue-mgmt/
 
 ## Development Phases
 
-| Phase | Focus | Status | Progress | Tasks |
-|-------|-------|--------|----------|-------|
-| **Phase 1** | Foundation - Accounts, Contracts, Products, Invoices | 🟡 In Progress | 2/30 | 7% |
-| **Phase 2** | Contract Billing + Scalability (PM2, BullMQ, Workers) | ⚪ Planned | 0/44 | 0% |
-| **Phase 3** | Hierarchical Accounts + Consolidated Billing | ⚪ Planned | 0/21 | 0% |
-| **Phase 4** | Purchase Orders + Credit Management + Payments | ⚪ Planned | 0/23 | 0% |
-| **Phase 5** | Analytics + Renewal Tracking + Webhooks | ⚪ Planned | 0/23 | 0% |
-| **Phase 6+** | B2C Event-Based Billing | 🔵 Deferred | - | TBD |
-
-**Total Progress:** 2/141 tasks completed (1%)
-
-### Phase 1 Completed Tasks
-- ✅ Task 6-7: NestJS project initialization with Fastify and Prisma
-
-### Phase 1 In Progress
-- 🔄 Task 2: PostgreSQL setup with Docker (habibi)
-- 🔄 Task 10-14: Accounts API implementation (biksi + riina)
+| Phase | Focus | Status |
+|-------|-------|--------|
+| **Phase 1** | Foundation - Accounts, Contracts, Products, Invoices | 🟡 In Progress |
+| **Phase 2** | Contract Billing + Scalability (PM2, BullMQ, Workers) | ⚪ Planned |
+| **Phase 3** | Hierarchical Accounts + Consolidated Billing | ⚪ Planned |
+| **Phase 4** | Purchase Orders + Credit Management + Payments | ⚪ Planned |
+| **Phase 5** | Analytics + Renewal Tracking + Webhooks | ⚪ Planned |
+| **Phase 6+** | B2C Event-Based Billing | 🔵 Deferred |
 
 See [docs/feature-spec.md](./docs/feature-spec.md) for complete task breakdown.
 
@@ -323,34 +314,6 @@ AUTH_SERVER_URL=http://localhost:5176
 ```
 
 See [packages/revenue-backend/.env.example](./packages/revenue-backend/.env.example) for complete list.
-
----
-
-## Roadmap
-
-### Phase 1: Foundation (Current)
-- ✅ NestJS + Fastify + Prisma setup
-- 🔄 PostgreSQL with Docker
-- 🔄 Accounts API (CRUD)
-- 🔄 Contracts API (CRUD)
-- ⚪ Products API (CRUD)
-- ⚪ Invoices API (CRUD)
-
-### Phase 2: Contract Billing (Next)
-- Automated invoice generation from contracts
-- Seat-based billing calculations
-- Volume discount engine
-- PM2 cluster setup
-- BullMQ job queues
-- Worker processes (PDF, email, tax)
-
-### Phase 3-5: Enterprise Features
-- Hierarchical accounts
-- Consolidated billing
-- Purchase order workflows
-- Credit management
-- Payment processing
-- Analytics & reporting
 
 ---
 
