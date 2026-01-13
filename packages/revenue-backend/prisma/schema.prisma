@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Phase 1: Foundation - Accounts, Contracts, Products, Invoices
+
+model Account {
+  id                    String    @id @default(uuid())
+  parentAccountId       String?   @map("parent_account_id")
+  accountName           String    @map("account_name")
+  accountType           String    @default("enterprise") @map("account_type")
+  primaryContactEmail   String    @map("primary_contact_email")
+  billingContactName    String?   @map("billing_contact_name")
+  billingContactEmail   String?   @map("billing_contact_email")
+
+  // Billing Address
+  billingAddressLine1   String?   @map("billing_address_line1")
+  billingAddressLine2   String?   @map("billing_address_line2")
+  billingCity           String?   @map("billing_city")
+  billingState          String?   @map("billing_state")
+  billingPostalCode     String?   @map("billing_postal_code")
+  billingCountry        String?   @map("billing_country")
+
+  // Payment Configuration
+  paymentTerms          String    @default("net_30") @map("payment_terms")
+  paymentTermsDays      Int       @default(30) @map("payment_terms_days")
+  currency              String    @default("USD")
+  taxId                 String?   @map("tax_id")
+
+  // Credit Management
+  creditLimit           Decimal?  @map("credit_limit") @db.Decimal(12, 2)
+  creditHold            Boolean   @default(false) @map("credit_hold")
+
+  // Account Status
+  status                String    @default("active")
+
+  // Metadata
+  metadata              Json?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  deletedAt             DateTime? @map("deleted_at")
+
+  // Relations
+  parent                Account?  @relation("AccountHierarchy", fields: [parentAccountId], references: [id])
+  children              Account[] @relation("AccountHierarchy")
+  contracts             Contract[]
+  invoices              Invoice[]
+
+  @@index([parentAccountId])
+  @@index([status])
+  @@index([accountType])
+  @@map("accounts")
+}
+
+model Contract {
+  id                  String    @id @default(uuid())
+  contractNumber      String    @unique @map("contract_number")
+  accountId           String    @map("account_id")
+
+  // Contract Terms
+  startDate           DateTime  @map("start_date") @db.Date
+  endDate             DateTime  @map("end_date") @db.Date
+  contractValue       Decimal   @map("contract_value") @db.Decimal(12, 2)
+  billingFrequency    String    @default("annual") @map("billing_frequency")
+
+  // Seat-Based Licensing
+  seatCount           Int?      @map("seat_count")
+  committedSeats      Int?      @map("committed_seats")
+  seatPrice           Decimal?  @map("seat_price") @db.Decimal(10, 2)
+
+  // Payment Terms
+  paymentTerms        String    @default("net_30") @map("payment_terms")
+  billingInAdvance    Boolean   @default(true) @map("billing_in_advance")
+
+  // Auto-Renewal
+  autoRenew           Boolean   @default(true) @map("auto_renew")
+  renewalNoticeDays   Int       @default(90) @map("renewal_notice_days")
+
+  // Status
+  status              String    @default("active")
+  notes               String?
+
+  // Metadata
+  metadata            Json?
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  account             Account   @relation(fields: [accountId], references: [id])
+  invoices            Invoice[]
+
+  @@index([accountId])
+  @@index([status])
+  @@index([endDate])
+  @@map("contracts")
+}
+
+model Product {
+  id                  String    @id @default(uuid())
+  name                String
+  description         String?
+  sku                 String?   @unique
+
+  // Pricing Model
+  pricingModel        String    @map("pricing_model") // seat_based, flat_fee, volume_tiered, custom
+  basePrice           Decimal?  @map("base_price") @db.Decimal(10, 2)
+  currency            String    @default("USD")
+
+  // Seat-Based Configuration
+  minSeats            Int       @default(1) @map("min_seats")
+  maxSeats            Int?      @map("max_seats")
+  seatIncrement       Int       @default(1) @map("seat_increment")
+
+  // Volume Discount Tiers
+  volumeTiers         Json?     @map("volume_tiers")
+
+  // Billing Configuration
+  billingInterval     String?   @map("billing_interval")
+
+  // Product Status
+  active              Boolean   @default(true)
+  isAddon             Boolean   @default(false) @map("is_addon")
+
+  // Metadata
+  metadata            Json?
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([pricingModel])
+  @@index([active])
+  @@map("products")
+}
+
+model Invoice {
+  id                    String    @id @default(uuid())
+  invoiceNumber         String    @unique @map("invoice_number")
+
+  // B2B Relationships
+  accountId             String    @map("account_id")
+  contractId            String?   @map("contract_id")
+  purchaseOrderNumber   String?   @map("purchase_order_number")
+
+  // Invoice Dates
+  issueDate             DateTime  @map("issue_date") @db.Date
+  dueDate               DateTime  @map("due_date") @db.Date
+  periodStart           DateTime? @map("period_start") @db.Date
+  periodEnd             DateTime? @map("period_end") @db.Date
+
+  // Amounts
+  subtotal              Decimal   @default(0) @db.Decimal(12, 2)
+  tax                   Decimal   @default(0) @db.Decimal(12, 2)
+  discount              Decimal   @default(0) @db.Decimal(12, 2)
+  total                 Decimal   @default(0) @db.Decimal(12, 2)
+  currency              String    @default("USD")
+
+  // Payment Status
+  status                String    @default("draft")
+  paidAmount            Decimal   @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  paidDate              DateTime? @map("paid_date") @db.Date
+
+  // Billing Type
+  billingType           String    @default("recurring") @map("billing_type")
+
+  // Enterprise Features
+  consolidated          Boolean   @default(false)
+  parentInvoiceId       String?   @map("parent_invoice_id")
+
+  // Notes & Metadata
+  notes                 String?
+  internalNotes         String?   @map("internal_notes")
+  metadata              Json?
+
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  account               Account       @relation(fields: [accountId], references: [id])
+  contract              Contract?     @relation(fields: [contractId], references: [id])
+  items                 InvoiceItem[]
+
+  @@index([accountId])
+  @@index([contractId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([purchaseOrderNumber])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String   @map("invoice_id")
+  description String
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  amount      Decimal  @db.Decimal(10, 2)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
