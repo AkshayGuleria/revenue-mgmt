@@ -1,10 +1,12 @@
-# Revenue Management Backend System
+# Revenue Management System
 
-**B2B Enterprise revenue management backend system** with contract-based billing, hierarchical accounts, and seat-based licensing.
+**Enterprise-grade B2B billing platform** for SaaS companies with complex contracts, hierarchical accounts, and seat-based licensing.
 
 ## Overview
 
-This repository contains the specification and implementation for a full-featured B2B Enterprise billing system designed for SaaS companies selling to large organizations with complex contracts, hierarchical account structures, and custom payment terms.
+A complete revenue management system designed for B2B SaaS companies selling to large enterprises. Handles multi-year contracts, hierarchical account structures, consolidated billing, and custom payment terms.
+
+**Current Status:** 🟢 Phase 1 - Foundation (In Progress)
 
 ### Key Features
 
@@ -17,69 +19,369 @@ This repository contains the specification and implementation for a full-feature
 - 📅 **Flexible Billing** - Quarterly/Annual billing in advance
 - 💰 **Custom Payment Terms** - Net 30/60/90 configurations
 
-## Documentation
+---
 
-- **[Feature Specification](./docs/feature-spec.md)** - Complete technical specification (141 subtasks across 5 phases)
-- **[Architecture](./docs/architecture.md)** - System architecture and design decisions (coming soon)
-- **[API Documentation](./docs/api.md)** - RESTful API endpoints (coming soon)
-- **[Database Schema](./docs/schema.md)** - PostgreSQL schema design (coming soon)
+## Quick Start
 
-## Technology Stack
+### Prerequisites
 
-- **Backend:** Express.js (Node.js)
-- **Database:** PostgreSQL (with recursive CTEs for hierarchies)
-- **Job Queue:** BullMQ + Redis
-- **Scalability:** PM2 + Node.js Cluster + Worker Threads
-- **Payments:** Stripe API + ACH
+- Node.js 20+
+- PostgreSQL 14+
+- Redis 6+ (for Phase 2)
+- Docker & Docker Compose (recommended)
 
-## Development Phases
+### Setup
 
-| Phase | Focus | Status | Tasks |
-|-------|-------|--------|-------|
-| **Phase 1** | Foundation - Enterprise accounts, contracts | Planned | 30 |
-| **Phase 2** | Contract billing + Hybrid scalability | Planned | 44 |
-| **Phase 3** | Hierarchical accounts, consolidated billing | Planned | 21 |
-| **Phase 4** | Purchase orders, credit management | Planned | 23 |
-| **Phase 5** | Analytics, renewal tracking, SLA adjustments | Planned | 23 |
-| **Phase 6+** | B2C event-based billing (future) | Deferred | TBD |
+```bash
+# Clone repository
+git clone https://github.com/AkshayGuleria/revenue-mgmt.git
+cd revenue-mgmt
 
-**Total:** 141 subtasks across 5 phases
+# Backend setup
+cd packages/revenue-backend
+npm install
+cp .env.example .env
+# Edit .env with database credentials
 
-## Performance Targets
+# Generate Prisma client
+npm run prisma:generate
 
-- **API throughput:** 200 req/sec (complex hierarchical queries)
-- **Contract billing:** 40 invoices/sec (seat calculations + volume discounts)
-- **Consolidated billing:** 15 invoices/sec (10 subsidiaries per parent)
-- **Quarterly billing:** 10K accounts in 4 minutes
-- **Annual billing:** 50K accounts in 21 minutes
-- **Month-end processing:** Complete billing for 50K accounts in <30 minutes
+# Run migrations (after PostgreSQL is running)
+npm run prisma:migrate
 
-## Getting Started
+# Start development server
+npm run start:dev
+```
 
-Currently in **planning phase**. Implementation will begin with Phase 1 (Foundation).
+Backend runs at http://localhost:5177
+- **API Docs:** http://localhost:5177/api/docs
+- **Health Check:** http://localhost:5177/health
 
-See [docs/feature-spec.md](./docs/feature-spec.md) for the complete specification.
+See [packages/revenue-backend/README.md](./packages/revenue-backend/README.md) for detailed backend setup.
 
-## Project Structure (Planned)
+---
+
+## Project Structure
 
 ```
 revenue-mgmt/
-├── docs/                    # Documentation
-│   ├── feature-spec.md      # Complete feature specification
-│   ├── architecture.md      # Architecture decisions
-│   ├── api.md              # API documentation
-│   └── schema.md           # Database schema
-├── packages/               # Future: Monorepo packages
-│   ├── revenue-backend/    # Express.js API server
-│   ├── workers/           # BullMQ worker processes
-│   └── migrations/        # Database migrations
-└── README.md              # This file
+├── .claude/                    # AI agent configuration
+│   ├── CLAUDE.md              # Project guidance for AI agents
+│   ├── agents.md              # Team agent definitions
+│   └── git-workflow.md        # Git workflow guidelines
+│
+├── docs/                      # Documentation
+│   ├── adrs/                  # Architecture Decision Records
+│   │   ├── 001-nestjs-fastify-swc-framework.md
+│   │   └── 002-backend-testing-framework.md
+│   └── feature-spec.md        # Complete 141-task specification
+│
+├── packages/                  # Monorepo packages
+│   └── revenue-backend/       # NestJS API server
+│       ├── src/               # Source code
+│       ├── prisma/            # Database schema & migrations
+│       ├── test/              # Tests (Jest + Supertest)
+│       └── README.md          # Backend-specific documentation
+│
+└── README.md                  # This file
 ```
+
+---
+
+## Technology Stack
+
+### Backend
+- **Framework:** NestJS 10 with Fastify adapter
+- **Language:** TypeScript 5
+- **Build Tool:** SWC (20x faster than tsc)
+- **Database:** PostgreSQL 14+ with Prisma ORM
+- **Job Queue:** BullMQ + Redis (Phase 2)
+- **Testing:** Jest + Supertest (80% coverage)
+
+### Scalability (Phase 2)
+- **PM2** - Process manager (cluster mode)
+- **Node.js Cluster** - Multi-process for I/O scaling
+- **Worker Threads** - Multi-threading for CPU tasks
+- **BullMQ** - Queue system for async jobs
+
+### Architecture Decisions
+- **ADR-001:** [NestJS + Fastify + SWC Framework](./docs/adrs/001-nestjs-fastify-swc-framework.md)
+- **ADR-002:** [Jest + Supertest Testing Strategy](./docs/adrs/002-backend-testing-framework.md)
+
+---
+
+## Development Phases
+
+| Phase | Focus | Status | Progress | Tasks |
+|-------|-------|--------|----------|-------|
+| **Phase 1** | Foundation - Accounts, Contracts, Products, Invoices | 🟡 In Progress | 2/30 | 7% |
+| **Phase 2** | Contract Billing + Scalability (PM2, BullMQ, Workers) | ⚪ Planned | 0/44 | 0% |
+| **Phase 3** | Hierarchical Accounts + Consolidated Billing | ⚪ Planned | 0/21 | 0% |
+| **Phase 4** | Purchase Orders + Credit Management + Payments | ⚪ Planned | 0/23 | 0% |
+| **Phase 5** | Analytics + Renewal Tracking + Webhooks | ⚪ Planned | 0/23 | 0% |
+| **Phase 6+** | B2C Event-Based Billing | 🔵 Deferred | - | TBD |
+
+**Total Progress:** 2/141 tasks completed (1%)
+
+### Phase 1 Completed Tasks
+- ✅ Task 6-7: NestJS project initialization with Fastify and Prisma
+
+### Phase 1 In Progress
+- 🔄 Task 2: PostgreSQL setup with Docker (habibi)
+- 🔄 Task 10-14: Accounts API implementation (biksi + riina)
+
+See [docs/feature-spec.md](./docs/feature-spec.md) for complete task breakdown.
+
+---
+
+## Performance Targets
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| **API throughput** | 200 req/sec | Complex hierarchical queries |
+| **Contract billing** | 40 invoices/sec | Seat calculations + volume discounts |
+| **Consolidated billing** | 15 invoices/sec | 10 subsidiaries per parent |
+| **PDF generation** | 48 PDFs/sec | 3 workers × 2 threads each |
+| **Quarterly billing** | 10K accounts in 4 min | Parallel batch processing |
+| **Annual billing** | 50K accounts in 21 min | Large batch with seat-based calc |
+
+---
+
+## Team & Workflow
+
+### Agent Team
+
+| Agent | Role | Current Work |
+|-------|------|--------------|
+| **tommi** | Architecture & Brainstorming | Design reviews, problem solving |
+| **tapsa** | Task Manager & Tracker | Coordinate work, track progress |
+| **biksi** | Backend Development | NestJS API implementation |
+| **riina** | Backend Testing | Jest unit + Supertest integration tests |
+| **habibi** | Infrastructure & DevOps | Docker, PostgreSQL, Redis, PM2 |
+| **frooti** | Frontend Development | React UI (Phase 1) |
+| **piia** | Frontend Testing | Playwright E2E tests |
+
+See [.claude/agents.md](./.claude/agents.md) for detailed agent responsibilities.
+
+### Git Workflow
+
+All development follows **feature branch workflow**:
+
+```bash
+# Create feature branch
+git checkout -b feature/accounts-crud-api
+
+# Develop and commit
+git add .
+git commit -m "feat: implement accounts CRUD endpoints"
+
+# Merge to master (squash)
+git checkout master
+git merge --squash feature/accounts-crud-api
+git commit -m "feat: implement accounts CRUD API"
+```
+
+**🚨 NEVER commit directly to master**
+
+See [.claude/git-workflow.md](./.claude/git-workflow.md) for complete guidelines.
+
+---
+
+## Documentation
+
+### For Developers
+- **[Backend Setup](./packages/revenue-backend/README.md)** - NestJS backend setup and development
+- **[Git Workflow](./.claude/git-workflow.md)** - Branching strategy and commit guidelines
+- **[Feature Spec](./docs/feature-spec.md)** - Complete 141-task specification
+
+### For AI Agents
+- **[CLAUDE.md](./.claude/CLAUDE.md)** - Project guidance for Claude Code
+- **[Agents](./.claude/agents.md)** - Agent team definitions and coordination
+
+### Architecture Decisions
+- **[ADR Index](./docs/adrs/README.md)** - All architecture decision records
+- **[ADR-001](./docs/adrs/001-nestjs-fastify-swc-framework.md)** - Framework selection
+- **[ADR-002](./docs/adrs/002-backend-testing-framework.md)** - Testing strategy
+
+---
+
+## Testing Strategy
+
+Following ADR-002 testing pyramid:
+
+- **60% Unit Tests** (Jest) - Services, utilities, business logic
+- **30% Integration Tests** (Supertest) - API endpoints, database operations
+- **10% E2E Tests** (Playwright) - Critical user flows (frontend repo)
+
+**Minimum Coverage:** 80% per module
+
+```bash
+# Run unit tests
+npm test
+
+# Run integration tests
+npm run test:e2e
+
+# Coverage report
+npm run test:cov
+```
+
+---
+
+## Database Schema
+
+Phase 1 includes:
+
+- **accounts** - Hierarchical enterprise accounts
+- **contracts** - Multi-year seat-based contracts
+- **products** - Product catalog with volume tiers
+- **invoices** - Invoices linked to contracts
+- **invoice_items** - Invoice line items
+
+See [packages/revenue-backend/prisma/schema.prisma](./packages/revenue-backend/prisma/schema.prisma) for complete schema.
+
+---
+
+## Contributing
+
+### Development Process
+
+1. **Check out a feature branch** (required)
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Write code with tests**
+   - Unit tests for services
+   - Integration tests for APIs
+   - Minimum 80% coverage
+
+3. **Commit following conventions**
+   ```
+   feat: add new feature
+   fix: fix bug
+   test: add tests
+   docs: update documentation
+   ```
+
+4. **Merge via squash**
+   ```bash
+   git checkout master
+   git merge --squash feature/your-feature-name
+   git commit -m "feat: descriptive message"
+   ```
+
+5. **Push to remote**
+   ```bash
+   git push origin master
+   ```
+
+### Code Quality
+
+- Follow NestJS best practices
+- Use TypeScript strict mode
+- Write descriptive commit messages
+- Include tests with all PRs
+- Update documentation
+
+---
+
+## API Documentation
+
+Once running, access auto-generated Swagger documentation:
+
+**http://localhost:5177/api/docs**
+
+### Key Endpoints (Phase 1)
+
+- `POST /api/accounts` - Create account
+- `GET /api/accounts` - List accounts
+- `POST /api/contracts` - Create contract
+- `GET /api/contracts` - List contracts
+- `POST /api/invoices` - Create invoice
+- `GET /api/invoices` - List invoices
+
+See backend README for complete API reference.
+
+---
+
+## Environment Variables
+
+```bash
+# Server
+PORT=5177
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/revenue_db
+
+# Redis (Phase 2)
+REDIS_URL=redis://localhost:6379
+
+# Auth Integration
+AUTH_SERVER_URL=http://localhost:5176
+```
+
+See [packages/revenue-backend/.env.example](./packages/revenue-backend/.env.example) for complete list.
+
+---
+
+## Roadmap
+
+### Phase 1: Foundation (Current)
+- ✅ NestJS + Fastify + Prisma setup
+- 🔄 PostgreSQL with Docker
+- 🔄 Accounts API (CRUD)
+- 🔄 Contracts API (CRUD)
+- ⚪ Products API (CRUD)
+- ⚪ Invoices API (CRUD)
+
+### Phase 2: Contract Billing (Next)
+- Automated invoice generation from contracts
+- Seat-based billing calculations
+- Volume discount engine
+- PM2 cluster setup
+- BullMQ job queues
+- Worker processes (PDF, email, tax)
+
+### Phase 3-5: Enterprise Features
+- Hierarchical accounts
+- Consolidated billing
+- Purchase order workflows
+- Credit management
+- Payment processing
+- Analytics & reporting
+
+---
+
+## Performance & Scalability
+
+Built for enterprise scale:
+
+- **Hybrid scalability:** PM2 cluster + Worker Threads + BullMQ queues
+- **Database optimization:** Recursive CTEs, materialized views, strategic indices
+- **Caching strategy:** Product catalog, volume tiers, account hierarchies
+- **Batch operations:** Process 500 contracts per job, 100 emails per batch
+
+See feature spec for detailed performance benchmarks.
+
+---
 
 ## License
 
-(To be determined)
+UNLICENSED - Internal use only
 
-## Contact
+---
 
-(To be determined)
+## Support & Contact
+
+- **Issues:** GitHub Issues
+- **Documentation:** `docs/` directory
+- **Architecture:** `docs/adrs/` directory
+- **AI Guidance:** `.claude/CLAUDE.md`
+
+---
+
+**Built with:** NestJS • Fastify • Prisma • PostgreSQL • TypeScript • SWC
+
+**Status:** 🟢 Phase 1 Active Development
