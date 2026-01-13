@@ -108,6 +108,30 @@ git checkout -b feature/invoice-list-component
 git checkout -b fix/invoice-table-overflow
 ```
 
+**riina (Backend Testing) creating branches:**
+```bash
+# Phase 1 - Unit tests for accounts
+git checkout -b test/accounts-service-unit-tests
+
+# Phase 2 - Integration tests for billing
+git checkout -b test/billing-engine-integration-tests
+
+# Fix flaky test
+git checkout -b fix/invoice-test-race-condition
+```
+
+**piia (Frontend Testing) creating branches:**
+```bash
+# Phase 1 - E2E tests for invoice flow
+git checkout -b test/invoice-creation-e2e
+
+# Phase 2 - Visual regression tests
+git checkout -b test/dashboard-visual-regression
+
+# Fix flaky E2E test
+git checkout -b fix/invoice-list-e2e-timeout
+```
+
 **habibi (Infrastructure) creating branches:**
 ```bash
 # Phase 1 - Database setup

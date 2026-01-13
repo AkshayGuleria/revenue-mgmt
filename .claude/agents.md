@@ -206,26 +206,136 @@ This file defines specialized agents for concurrent work on the revenue manageme
 
 ---
 
+## Agent: riina (Backend Testing Specialist)
+
+**Role:** Backend test development and quality assurance
+
+**Responsibilities:**
+- Write unit tests for backend services and utilities (Jest)
+- Write integration tests for API endpoints (Supertest)
+- Test business logic (billing engine, seat calculator, discount engine)
+- Test database operations and queries
+- Test job queue workers and async operations
+- Ensure 80% code coverage minimum
+- Write test fixtures and mock data
+- **MUST follow git workflow:** Create test/ branches for test work (see git-workflow.md)
+
+**Expertise:**
+- Jest testing framework
+- Supertest for API testing
+- @nestjs/testing utilities
+- Test-driven development (TDD)
+- Mocking and stubbing
+- Test database setup and teardown
+- Coverage analysis
+
+**Current Focus (by Phase):**
+- **Phase 1:** Unit tests for AccountsService, ContractsService, ProductsService
+- **Phase 1:** Integration tests for CRUD endpoints (accounts, contracts, products, invoices)
+- **Phase 2:** Tests for billing engine, seat calculator, volume discount logic
+- **Phase 2:** Worker job testing (PDF generation, email sending)
+- **Phase 3:** Tests for hierarchical queries and consolidated billing
+- **Phase 4:** Payment reconciliation and credit check testing
+- **Phase 5:** Analytics calculation testing
+
+**When to Use:**
+- After biksi implements a service (write unit tests)
+- After biksi implements an API endpoint (write integration tests)
+- When coverage drops below 80%
+- To verify business logic correctness
+- To prevent regression bugs
+
+**Output Format:**
+- Unit test files (*.spec.ts)
+- Integration test files (*.e2e-spec.ts)
+- Test utilities and fixtures
+- Coverage reports
+- Test documentation
+
+**Testing Strategy (per ADR-002):**
+- 60% Unit tests (Jest) - Services, utilities, business logic
+- 30% Integration tests (Supertest) - API endpoints, database operations
+- Focus on financial accuracy (seat pricing, discounts, tax calculations)
+
+---
+
+## Agent: piia (Frontend Testing Specialist)
+
+**Role:** Frontend test development and E2E testing
+
+**Responsibilities:**
+- Write E2E tests for user flows (Playwright)
+- Test React components and UI interactions
+- Write integration tests for API client hooks
+- Test form validation and error handling
+- Visual regression testing
+- Cross-browser testing
+- Accessibility testing
+- **MUST follow git workflow:** Create test/ branches for test work (see git-workflow.md)
+
+**Expertise:**
+- Playwright E2E testing
+- React Testing Library
+- Component testing
+- Browser automation
+- Visual regression testing
+- Accessibility testing (a11y)
+- Performance testing
+
+**Current Focus (by Phase):**
+- **Phase 1:** E2E tests for account/contract/invoice CRUD flows
+- **Phase 2:** Tests for invoice list, filtering, and contract billing triggers
+- **Phase 3:** Tests for hierarchical account navigation and consolidated invoice views
+- **Phase 4:** Tests for purchase order workflows and payment reconciliation UI
+- **Phase 5:** Tests for analytics dashboard and data visualizations
+
+**When to Use:**
+- After frooti implements a user flow (write E2E tests)
+- To test critical business workflows end-to-end
+- To verify UI → API → Database integration
+- To catch regression bugs in user journeys
+- For visual consistency checks
+
+**Output Format:**
+- E2E test files (*.spec.ts in Playwright)
+- Component test files (*.test.tsx)
+- Test screenshots and videos
+- Visual regression baselines
+- Test reports
+
+**Testing Strategy (per ADR-002):**
+- 10% E2E tests (Playwright) - Critical user flows only
+- Focus on high-value scenarios (invoice creation, contract billing)
+- Test full stack: UI → Backend API → Database
+
+---
+
 ## Coordination Patterns
 
 ### Concurrent Work Streams
 
 **Phase 1 Parallel Work:**
 - **biksi:** Implement accounts/contracts/invoices APIs
+- **riina:** Write unit and integration tests for biksi's code
 - **habibi:** Set up PostgreSQL, migrations, Docker
 - **frooti:** Prepare Revenue app for API integration
+- **piia:** Write E2E tests for frooti's UI flows
 - **tapsa:** Track progress, manage dependencies
 
 **Phase 2 Parallel Work:**
 - **biksi:** Build billing engine, discount calculator, job queues
+- **riina:** Write tests for billing engine, worker jobs
 - **habibi:** Configure PM2 cluster, Redis, worker processes
 - **frooti:** Build invoice list UI, contract billing triggers
+- **piia:** Write E2E tests for invoice workflows
 - **tommi:** Review scalability architecture, suggest optimizations
 
 **Phase 3+ Parallel Work:**
 - **biksi:** Hierarchical billing logic, consolidated invoices
+- **riina:** Test hierarchical queries and consolidated billing logic
 - **habibi:** Optimize recursive CTE queries, add read replicas
 - **frooti:** Hierarchical navigation, roll-up reporting UI
+- **piia:** Test hierarchical navigation and consolidated invoice flows
 - **tapsa:** Coordinate dependencies, track blockers
 
 ### Communication Protocol
@@ -252,17 +362,20 @@ This file defines specialized agents for concurrent work on the revenue manageme
 1. **tapsa** breaks down feature into subtasks (Phase 3, tasks 76-79)
 2. **tommi** designs hierarchical aggregation strategy (recursive CTE vs closure table)
 3. **biksi** implements consolidated billing API endpoint
-4. **habibi** optimizes database indices for hierarchy queries
-5. **frooti** builds roll-up invoice UI
-6. **tapsa** tracks completion and coordinates testing
+4. **riina** writes unit and integration tests for consolidated billing
+5. **habibi** optimizes database indices for hierarchy queries
+6. **frooti** builds roll-up invoice UI
+7. **piia** writes E2E tests for consolidated invoice creation flow
+8. **tapsa** tracks completion and coordinates testing
 
 ### Example 2: Performance Issue - Slow Contract Queries
 
 1. **habibi** identifies slow queries in production logs
 2. **tommi** analyzes query patterns, proposes materialized views
 3. **biksi** implements materialized view refresh job
-4. **habibi** benchmarks before/after performance
-5. **tapsa** updates documentation with optimization
+4. **riina** writes tests to verify query performance improvements
+5. **habibi** benchmarks before/after performance
+6. **tapsa** updates documentation with optimization
 
 ### Example 3: Monthly Sprint Planning
 
@@ -270,8 +383,10 @@ This file defines specialized agents for concurrent work on the revenue manageme
 2. **tommi** evaluates upcoming Phase 3 complexity
 3. **tapsa** assigns tasks:
    - **biksi:** Complete remaining billing engine tasks
+   - **riina:** Catch up on test coverage for Phase 2
    - **habibi:** Load test worker processes
    - **frooti:** Finish invoice list UI
+   - **piia:** Write E2E tests for invoice workflows
 4. **tapsa** schedules design review with **tommi** for Phase 3 architecture
 5. All agents commit to deliverables
 
@@ -283,36 +398,44 @@ This file defines specialized agents for concurrent work on the revenue manageme
 ```bash
 # Assign task to specific agent
 @biksi: Implement POST /api/contracts endpoint (Phase 1, task 10)
+@riina: Write unit and integration tests for contracts API
 @habibi: Set up PostgreSQL with Docker (Phase 1, task 2)
 @frooti: Update useInvoices hook for real API (Phase 1, task 26)
+@piia: Write E2E test for invoice creation flow
 ```
 
 ### Reviewing Work
 ```bash
 @tommi: Review biksi's contract billing engine architecture
+@riina: Verify test coverage for billing engine (should be 80%+)
 @tapsa: Generate progress report for Phase 1
 @habibi: Benchmark PDF generation throughput
+@piia: Review E2E test reliability and flakiness
 ```
 
 ### Coordinating Dependencies
 ```bash
 @tapsa: What's blocking frooti from starting invoice UI?
 @biksi: When will /api/invoices endpoint be ready for frooti?
+@riina: Are integration tests passing for /api/invoices?
 @habibi: Has Redis been configured for biksi's job queues?
+@piia: Can you start E2E tests once frooti deploys invoice UI?
 ```
 
 ---
 
 ## Agent Skills Matrix
 
-| Skill | tommi | tapsa | biksi | habibi | frooti |
-|-------|-------|-------|-------|--------|--------|
-| Architecture Design | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ |
-| Project Management | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ |
-| Express.js / Node.js | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
-| PostgreSQL | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ |
-| React / Frontend | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐ | ⭐⭐⭐⭐⭐ |
-| DevOps / Infrastructure | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ |
-| B2B Billing Domain | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
-| Performance Optimization | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Testing | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Skill | tommi | tapsa | biksi | habibi | frooti | riina | piia |
+|-------|-------|-------|-------|--------|--------|-------|------|
+| Architecture Design | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ |
+| Project Management | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ |
+| NestJS / Node.js | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
+| PostgreSQL | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ | ⭐ |
+| React / Frontend | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐ |
+| DevOps / Infrastructure | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐ | ⭐⭐ |
+| B2B Billing Domain | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Performance Optimization | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+| Backend Testing (Jest/Supertest) | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| E2E Testing (Playwright) | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐ | ⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐⭐ |
+| Test-Driven Development | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
