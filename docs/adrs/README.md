@@ -56,6 +56,7 @@ Each ADR follows this structure:
 | # | Title | Date | Status | Topic |
 |---|-------|------|--------|-------|
 | [001](./001-nestjs-fastify-swc-framework.md) | Adopt NestJS + Fastify + SWC for Backend | 2026-01-13 | Accepted | Framework |
+| [002](./002-backend-testing-framework.md) | Backend Testing Framework - Jest + Supertest (Not Playwright) | 2026-01-13 | Accepted | Testing Strategy |
 
 ## ADR Lifecycle
 
