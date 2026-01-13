@@ -2,8 +2,6 @@
 
 **B2B Enterprise revenue management backend system** with contract-based billing, hierarchical accounts, and seat-based licensing.
 
-Extracted from the [hybrid-ui](https://github.com/AkshayGuleria/hybrid-ui) project on 2026-01-12 to enable independent development.
-
 ## Overview
 
 This repository contains the specification and implementation for a full-featured B2B Enterprise billing system designed for SaaS companies selling to large organizations with complex contracts, hierarchical account structures, and custom payment terms.
@@ -77,11 +75,6 @@ revenue-mgmt/
 │   └── migrations/        # Database migrations
 └── README.md              # This file
 ```
-
-## Related Projects
-
-- **[hybrid-ui](https://github.com/AkshayGuleria/hybrid-ui)** - Frontend Revenue app that will consume this backend
-- **Frontdoor Auth** - Shared authentication system (from hybrid-ui)
 
 ## License
 
