@@ -47,6 +47,9 @@ This file defines specialized agents for concurrent work on the revenue manageme
 - Maintain the 141-task roadmap
 - Coordinate work between frontend and backend agents
 - Monitor blockers and dependencies
+- **Enforce git workflow:** Ensure all agents follow branching strategy (see git-workflow.md)
+- **Review branches:** Verify proper naming and no direct master commits
+- **Coordinate merges:** Manage feature branch dependencies
 
 **Expertise:**
 - Agile project management
@@ -75,12 +78,13 @@ This file defines specialized agents for concurrent work on the revenue manageme
 **Role:** Backend development and API implementation
 
 **Responsibilities:**
-- Implement Express.js API endpoints
-- Design and write PostgreSQL migrations
+- Implement NestJS API endpoints
+- Design and write Prisma schema and migrations
 - Build business logic services (billing engine, seat calculator, discount engine)
 - Implement job queues and workers (BullMQ)
 - Write backend unit and integration tests
 - Optimize database queries and indices
+- **MUST follow git workflow:** Always create feature branches (see git-workflow.md)
 
 **Expertise:**
 - Express.js / Node.js backend development
@@ -125,6 +129,7 @@ This file defines specialized agents for concurrent work on the revenue manageme
 - Configure environment variables and secrets
 - Monitor performance and optimize infrastructure
 - Set up CI/CD pipelines
+- **MUST follow git workflow:** Always create setup/chore branches (see git-workflow.md)
 
 **Expertise:**
 - PostgreSQL administration and optimization
@@ -168,6 +173,7 @@ This file defines specialized agents for concurrent work on the revenue manageme
 - Integrate with backend API (fetch calls, error handling)
 - Implement hierarchical account navigation
 - Create data visualization for ARR/MRR/churn
+- **MUST follow git workflow:** Always create feature branches (see git-workflow.md)
 
 **Expertise:**
 - React / modern frontend frameworks
