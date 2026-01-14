@@ -1,33 +1,52 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
-import { AccountType } from './create-account.dto';
-import { AccountStatus } from './update-account.dto';
+import { BasePaginationDto } from '../../../common/dto';
 
-export class QueryAccountsDto {
+enum AccountType {
+  ENTERPRISE = 'enterprise',
+  SMB = 'smb',
+  STARTUP = 'startup',
+}
+
+enum AccountStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
+}
+
+/**
+ * Query DTO for filtering and paginating accounts
+ * Uses operator-based query parameters per ADR-003
+ */
+export class QueryAccountsDto extends BasePaginationDto {
+  // LIKE operator - Search
   @ApiPropertyOptional({
-    description: 'Search by account name (case-insensitive)',
+    description: 'Search by account name (case-insensitive substring)',
     example: 'acme',
   })
   @IsOptional()
   @IsString()
-  search?: string;
+  'accountName[like]'?: string;
 
+  // EQ operator - Exact match filters
   @ApiPropertyOptional({
-    description: 'Filter by account type',
+    description: 'Filter by account type (exact match)',
     enum: AccountType,
+    example: 'enterprise',
   })
   @IsOptional()
   @IsEnum(AccountType)
-  accountType?: AccountType;
+  'accountType[eq]'?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by account status',
+    description: 'Filter by account status (exact match)',
     enum: AccountStatus,
+    example: 'active',
   })
   @IsOptional()
   @IsEnum(AccountStatus)
-  status?: AccountStatus;
+  'status[eq]'?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by parent account ID (get all children)',
@@ -35,29 +54,32 @@ export class QueryAccountsDto {
   })
   @IsOptional()
   @IsString()
-  parentAccountId?: string;
+  'parentAccountId[eq]'?: string;
 
+  // IN operator - Multiple values
   @ApiPropertyOptional({
-    description: 'Page number (starts at 1)',
-    example: 1,
-    default: 1,
+    description: 'Filter by multiple statuses (comma-separated)',
+    example: 'active,suspended',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number;
+  @IsString()
+  'status[in]'?: string;
 
   @ApiPropertyOptional({
-    description: 'Number of items per page',
-    example: 20,
-    default: 20,
-    minimum: 1,
-    maximum: 100,
+    description: 'Filter by multiple account types (comma-separated)',
+    example: 'enterprise,smb',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  limit?: number;
+  @IsString()
+  'accountType[in]'?: string;
+
+  // NULL operator - Check for null
+  @ApiPropertyOptional({
+    description: 'Filter accounts with or without parent (true = no parent, false = has parent)',
+    example: true,
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  'parentAccountId[null]'?: boolean;
 }

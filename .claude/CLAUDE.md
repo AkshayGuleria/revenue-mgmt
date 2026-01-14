@@ -172,6 +172,125 @@ This system is built **B2B Enterprise-first**, not B2C:
    - Roll-up reporting across hierarchies
    - Customer health metrics
 
+## API Implementation Rules
+
+**Decision Reference:** [ADR-003: REST API Response Structure & Query Parameters](../docs/adrs/003-rest-api-response-structure.md)
+
+### Response Structure (MANDATORY)
+
+All REST API responses MUST follow this structure:
+
+```typescript
+{
+  "data": T | T[],  // Single resource or array
+  "paging": {
+    "offset": number | null,
+    "limit": number | null,
+    "total": number | null,
+    "totalPages": number | null,
+    "hasNext": boolean | null,
+    "hasPrev": boolean | null
+  }
+}
+```
+
+**Rules:**
+- ✅ **Paginated list**: Fill all paging fields
+- ✅ **Single resource**: All paging fields are `null`
+- ✅ **Non-paginated list**: Only `total` filled, rest `null`
+- ✅ **Error responses**: Use `{ error: {...} }` structure
+
+### Query Parameter Operators (MANDATORY)
+
+All list endpoints MUST use operator-based query parameters:
+
+```bash
+# Pagination (offset-based, SQL-friendly)
+?offset[eq]=0&limit[eq]=20
+
+# Equality
+?status[eq]=active&accountType[eq]=enterprise
+
+# Comparisons
+?creditLimit[gt]=10000&creditLimit[lte]=100000
+?createdAt[gte]=2024-01-01&createdAt[lte]=2024-12-31
+
+# IN operator (comma-separated)
+?status[in]=pending,overdue
+
+# LIKE (case-insensitive substring)
+?accountName[like]=acme
+
+# NULL checks
+?parentAccountId[null]=true
+```
+
+**Supported Operators:**
+- `[eq]` - Equals (`=`)
+- `[ne]` - Not equals (`!=`)
+- `[lt]` - Less than (`<`)
+- `[lte]` - Less than or equal (`<=`)
+- `[gt]` - Greater than (`>`)
+- `[gte]` - Greater than or equal (`>=`)
+- `[in]` - In list (`IN (...)`)
+- `[nin]` - Not in list (`NOT IN (...)`)
+- `[like]` - Case-insensitive substring (`ILIKE`)
+- `[null]` - Is null / not null (`IS NULL`)
+
+### Pagination Rules
+
+- Use **offset-based pagination** (SQL-friendly: `LIMIT x OFFSET y`)
+- Default: `offset=0`, `limit=20`
+- Maximum limit: `100`
+- Always include `paging` object in response (even if `null`)
+
+### HTTP Status Codes
+
+- `200 OK` - Successful GET, PUT, PATCH
+- `201 Created` - Successful POST
+- `204 No Content` - Successful DELETE
+- `400 Bad Request` - Validation errors
+- `404 Not Found` - Resource not found
+- `409 Conflict` - Duplicate resource
+- `500 Internal Server Error` - Server errors
+
+### TypeScript Interfaces (Use These)
+
+```typescript
+// Located in: src/common/interfaces/api-response.interface.ts
+
+interface PagingObject {
+  offset: number | null;
+  limit: number | null;
+  total: number | null;
+  totalPages: number | null;
+  hasNext: boolean | null;
+  hasPrev: boolean | null;
+}
+
+interface ApiResponse<T> {
+  data: T | T[];
+  paging: PagingObject;
+}
+
+interface ErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    statusCode: number;
+    timestamp: string;
+    path: string;
+    details?: Record<string, any>;
+  };
+}
+```
+
+### Implementation Utilities
+
+- **Query Parser**: `src/common/utils/query-parser.ts` - Converts `field[op]=value` to Prisma filters
+- **Response Builder**: `src/common/utils/response-builder.ts` - Creates consistent API responses
+- **Base DTO**: `src/common/dto/pagination.dto.ts` - Reusable pagination parameters
+
 ## API Structure (Planned)
 
 ### Core Endpoints (Phase 1)
