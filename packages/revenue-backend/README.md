@@ -95,7 +95,8 @@ npm run start:dev
 Server will start on http://localhost:5177
 
 - **API Documentation:** http://localhost:5177/api/docs
-- **Health Check:** http://localhost:5177/health
+- **Liveness Probe:** http://localhost:5177/health/liveness
+- **Readiness Probe:** http://localhost:5177/health/readiness
 
 ## Development Commands
 

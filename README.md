@@ -55,7 +55,8 @@ npm run start:dev
 
 Backend runs at http://localhost:5177
 - **API Docs:** http://localhost:5177/api/docs
-- **Health Check:** http://localhost:5177/health
+- **Liveness:** http://localhost:5177/health/liveness
+- **Readiness:** http://localhost:5177/health/readiness
 
 See [packages/revenue-backend/README.md](./packages/revenue-backend/README.md) for detailed backend setup.
 
