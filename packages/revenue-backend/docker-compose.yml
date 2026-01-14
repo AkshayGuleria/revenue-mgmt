@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: revenue-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: revenue_user
+      POSTGRES_PASSWORD: revenue_pass
+      POSTGRES_DB: revenue_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U revenue_user -d revenue_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revenue-network
+
+  redis:
+    image: redis:6-alpine
+    container_name: revenue-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revenue-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  revenue-network:
+    driver: bridge

@@ -14,27 +14,68 @@ B2B Enterprise Revenue Management Backend System built with NestJS, Fastify, and
 ## Prerequisites
 
 - Node.js 20+
-- PostgreSQL 14+
-- Redis 6+ (for Phase 2 - job queues)
+- Docker & Docker Compose (recommended)
+- **OR** PostgreSQL 14+ and Redis 6+ (manual setup)
 
 ## Getting Started
 
-### 1. Install Dependencies
+### Option 1: Docker Setup (Recommended)
+
+The easiest way to get started is using Docker Compose:
 
 ```bash
+# 1. Start PostgreSQL and Redis
+docker-compose up -d
+
+# 2. Copy environment file
+cp .env.example .env
+
+# 3. Install dependencies
 npm install
+
+# 4. Run database migrations
+npm run prisma:migrate
+
+# 5. Generate Prisma client
+npm run prisma:generate
 ```
 
-### 2. Configure Environment
+**Docker Compose includes:**
+- PostgreSQL 14 on port 5432
+- Redis 6 on port 6379 (for Phase 2)
+- Persistent data volumes
+- Health checks
+- Auto-restart on failure
+
+**Useful Docker commands:**
+```bash
+# View logs
+docker-compose logs -f postgres
+docker-compose logs -f redis
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (⚠️ deletes data)
+docker-compose down -v
+
+# Check service health
+docker-compose ps
+```
+
+### Option 2: Manual Database Setup
+
+If you prefer to install PostgreSQL and Redis manually:
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment
 cp .env.example .env
 # Edit .env with your database credentials
-```
 
-### 3. Set Up Database
-
-```bash
+# 3. Set Up Database
 # Run Prisma migrations
 npm run prisma:migrate
 
@@ -45,7 +86,7 @@ npm run prisma:generate
 npm run prisma:studio
 ```
 
-### 4. Start Development Server
+### Start Development Server
 
 ```bash
 npm run start:dev
@@ -115,9 +156,14 @@ revenue-backend/
 │   ├── app.controller.ts
 │   ├── app.service.ts
 │   └── main.ts
+├── docker/
+│   └── postgres/
+│       └── init.sql         # PostgreSQL initialization
 ├── prisma/
 │   └── schema.prisma        # Database schema
 ├── test/                    # E2E tests
+├── docker-compose.yml       # PostgreSQL + Redis setup
+├── .dockerignore
 ├── package.json
 ├── nest-cli.json            # NestJS config (SWC enabled)
 ├── tsconfig.json
