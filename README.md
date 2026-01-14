@@ -30,7 +30,7 @@ A complete revenue management system designed for B2B SaaS companies selling to 
 - Redis 6+ (for Phase 2)
 - Docker & Docker Compose (recommended)
 
-### Setup
+### Backend Setup
 
 ```bash
 # Clone repository
@@ -59,6 +59,22 @@ Backend runs at http://localhost:5177
 
 See [packages/revenue-backend/README.md](./packages/revenue-backend/README.md) for detailed backend setup.
 
+### Frontend Setup
+
+Frontend (Revenue app) is in a separate repository and connects to the backend API.
+
+```bash
+# Frontend connects to backend at http://localhost:5177
+# See Revenue app repository for setup instructions
+```
+
+**Frontend Features:**
+- Dashboard for finance teams
+- Account and contract management UI
+- Invoice generation and tracking
+- Analytics and reporting (Phase 5)
+- Hierarchical account navigation (Phase 3)
+
 ---
 
 ## Project Structure
@@ -84,11 +100,20 @@ revenue-mgmt/
 │       └── README.md          # Backend-specific documentation
 │
 └── README.md                  # This file
+
+Note: Frontend (Revenue app) is in a separate repository
 ```
 
 ---
 
 ## Technology Stack
+
+### Frontend
+- **Framework:** React (separate Revenue app repository)
+- **Language:** TypeScript
+- **UI Components:** B2B dashboard for finance teams
+- **API Integration:** REST client for backend API
+- **Testing:** Playwright for E2E tests
 
 ### Backend
 - **Framework:** NestJS 10 with Fastify adapter
@@ -200,22 +225,26 @@ See [.claude/git-workflow.md](./.claude/git-workflow.md) for complete guidelines
 
 Following ADR-002 testing pyramid:
 
+### Backend Testing
 - **60% Unit Tests** (Jest) - Services, utilities, business logic
 - **30% Integration Tests** (Supertest) - API endpoints, database operations
-- **10% E2E Tests** (Playwright) - Critical user flows (frontend repo)
-
-**Minimum Coverage:** 80% per module
+- **Minimum Coverage:** 80% per module
 
 ```bash
-# Run unit tests
-npm test
-
-# Run integration tests
-npm run test:e2e
-
-# Coverage report
-npm run test:cov
+# Backend tests (in packages/revenue-backend/)
+npm test                # Unit tests
+npm run test:e2e        # Integration tests
+npm run test:cov        # Coverage report
 ```
+
+### Frontend Testing
+- **10% E2E Tests** (Playwright) - Critical user flows through UI
+- Tests complete workflows: UI → Backend API → Database
+- Located in separate Revenue app repository
+
+**Testing Agents:**
+- **riina** - Backend testing (Jest + Supertest)
+- **piia** - Frontend testing (Playwright E2E)
 
 ---
 
@@ -285,12 +314,25 @@ Once running, access auto-generated Swagger documentation:
 
 ### Key Endpoints (Phase 1)
 
+**Accounts:**
 - `POST /api/accounts` - Create account
 - `GET /api/accounts` - List accounts
+- `GET /api/accounts/:id` - Get account details
+- `PUT /api/accounts/:id` - Update account
+- `DELETE /api/accounts/:id` - Delete account
+
+**Contracts:**
 - `POST /api/contracts` - Create contract
 - `GET /api/contracts` - List contracts
+- `GET /api/contracts/:id` - Get contract details
+
+**Invoices:**
 - `POST /api/invoices` - Create invoice
 - `GET /api/invoices` - List invoices
+- `GET /api/invoices/:id` - Get invoice with line items
+
+**Frontend Integration:**
+The Revenue app (React) consumes these REST APIs to provide a dashboard for finance teams to manage accounts, contracts, and invoices.
 
 See backend README for complete API reference.
 
