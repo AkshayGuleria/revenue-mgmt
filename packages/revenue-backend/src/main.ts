@@ -33,7 +33,15 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      filter: true, // Enable search/filter box
+      showRequestDuration: true, // Show request duration
+      persistAuthorization: true, // Persist authorization data
+      displayOperationId: false, // Hide operation IDs
+      tryItOutEnabled: true, // Enable "Try it out" by default
+    },
+  });
 
   const port = process.env.PORT || 5177;
   await app.listen(port, '0.0.0.0');
