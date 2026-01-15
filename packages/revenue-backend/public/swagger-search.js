@@ -28,7 +28,7 @@
     // Create search input
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
-    searchInput.placeholder = 'Search endpoints by path, method, or description...';
+    searchInput.placeholder = 'Search endpoints by path, method, or description. [Ctrl+K or Cmd+K to focus, Esc to clear search]';
     searchInput.className = 'swagger-search-input';
     searchInput.style.cssText = `
       width: 85%;
