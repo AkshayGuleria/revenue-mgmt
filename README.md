@@ -53,10 +53,11 @@ npm run prisma:migrate
 npm run start:dev
 ```
 
-Backend runs at http://localhost:5177
-- **API Docs:** http://localhost:5177/api/docs
-- **Liveness:** http://localhost:5177/health/liveness
-- **Readiness:** http://localhost:5177/health/readiness
+Backend runs at <http://localhost:5177>
+
+- **API Docs:** <http://localhost:5177/api/docs>
+- **Liveness:** <http://localhost:5177/health/liveness>
+- **Readiness:** <http://localhost:5177/health/readiness>
 
 See [packages/revenue-backend/README.md](./packages/revenue-backend/README.md) for detailed backend setup.
 
@@ -70,6 +71,7 @@ Frontend (Revenue app) is in a separate repository and connects to the backend A
 ```
 
 **Frontend Features:**
+
 - Dashboard for finance teams
 - Account and contract management UI
 - Invoice generation and tracking
@@ -110,6 +112,7 @@ Note: Frontend (Revenue app) is in a separate repository
 ## Technology Stack
 
 ### Frontend
+
 - **Framework:** React (separate Revenue app repository)
 - **Language:** TypeScript
 - **UI Components:** B2B dashboard for finance teams
@@ -117,6 +120,7 @@ Note: Frontend (Revenue app) is in a separate repository
 - **Testing:** Playwright for E2E tests
 
 ### Backend
+
 - **Framework:** NestJS 10 with Fastify adapter
 - **Language:** TypeScript 5
 - **Build Tool:** SWC (20x faster than tsc)
@@ -125,12 +129,14 @@ Note: Frontend (Revenue app) is in a separate repository
 - **Testing:** Jest + Supertest (80% coverage)
 
 ### Scalability (Phase 2)
+
 - **PM2** - Process manager (cluster mode)
 - **Node.js Cluster** - Multi-process for I/O scaling
 - **Worker Threads** - Multi-threading for CPU tasks
 - **BullMQ** - Queue system for async jobs
 
 ### Architecture Decisions
+
 - **ADR-001:** [NestJS + Fastify + SWC Framework](./docs/adrs/001-nestjs-fastify-swc-framework.md)
 - **ADR-002:** [Jest + Supertest Testing Strategy](./docs/adrs/002-backend-testing-framework.md)
 
@@ -207,15 +213,18 @@ See [.claude/git-workflow.md](./.claude/git-workflow.md) for complete guidelines
 ## Documentation
 
 ### For Developers
+
 - **[Backend Setup](./packages/revenue-backend/README.md)** - NestJS backend setup and development
 - **[Git Workflow](./.claude/git-workflow.md)** - Branching strategy and commit guidelines
 - **[Feature Spec](./docs/feature-spec.md)** - Complete 141-task specification
 
 ### For AI Agents
+
 - **[CLAUDE.md](./.claude/CLAUDE.md)** - Project guidance for Claude Code
 - **[Agents](./.claude/agents.md)** - Agent team definitions and coordination
 
 ### Architecture Decisions
+
 - **[ADR Index](./docs/adrs/README.md)** - All architecture decision records
 - **[ADR-001](./docs/adrs/001-nestjs-fastify-swc-framework.md)** - Framework selection
 - **[ADR-002](./docs/adrs/002-backend-testing-framework.md)** - Testing strategy
@@ -227,6 +236,7 @@ See [.claude/git-workflow.md](./.claude/git-workflow.md) for complete guidelines
 Following ADR-002 testing pyramid:
 
 ### Backend Testing
+
 - **60% Unit Tests** (Jest) - Services, utilities, business logic
 - **30% Integration Tests** (Supertest) - API endpoints, database operations
 - **Minimum Coverage:** 80% per module
@@ -239,11 +249,13 @@ npm run test:cov        # Coverage report
 ```
 
 ### Frontend Testing
+
 - **10% E2E Tests** (Playwright) - Critical user flows through UI
 - Tests complete workflows: UI → Backend API → Database
 - Located in separate Revenue app repository
 
 **Testing Agents:**
+
 - **riina** - Backend testing (Jest + Supertest)
 - **piia** - Frontend testing (Playwright E2E)
 
@@ -268,6 +280,7 @@ See [packages/revenue-backend/prisma/schema.prisma](./packages/revenue-backend/p
 ### Development Process
 
 1. **Check out a feature branch** (required)
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -278,6 +291,7 @@ See [packages/revenue-backend/prisma/schema.prisma](./packages/revenue-backend/p
    - Minimum 80% coverage
 
 3. **Commit following conventions**
+
    ```
    feat: add new feature
    fix: fix bug
@@ -286,6 +300,7 @@ See [packages/revenue-backend/prisma/schema.prisma](./packages/revenue-backend/p
    ```
 
 4. **Merge via squash**
+
    ```bash
    git checkout master
    git merge --squash feature/your-feature-name
@@ -293,6 +308,7 @@ See [packages/revenue-backend/prisma/schema.prisma](./packages/revenue-backend/p
    ```
 
 5. **Push to remote**
+
    ```bash
    git push origin master
    ```
@@ -311,11 +327,12 @@ See [packages/revenue-backend/prisma/schema.prisma](./packages/revenue-backend/p
 
 Once running, access auto-generated Swagger documentation:
 
-**http://localhost:5177/api/docs**
+**<http://localhost:5177/api/docs>**
 
 ### Key Endpoints (Phase 1)
 
 **Accounts:**
+
 - `POST /api/accounts` - Create account
 - `GET /api/accounts` - List accounts
 - `GET /api/accounts/:id` - Get account details
@@ -323,11 +340,13 @@ Once running, access auto-generated Swagger documentation:
 - `DELETE /api/accounts/:id` - Delete account
 
 **Contracts:**
+
 - `POST /api/contracts` - Create contract
 - `GET /api/contracts` - List contracts
 - `GET /api/contracts/:id` - Get contract details
 
 **Invoices:**
+
 - `POST /api/invoices` - Create invoice
 - `GET /api/invoices` - List invoices
 - `GET /api/invoices/:id` - Get invoice with line items

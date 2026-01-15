@@ -31,13 +31,15 @@
     searchInput.placeholder = 'Search endpoints by path, method, or description...';
     searchInput.className = 'swagger-search-input';
     searchInput.style.cssText = `
-      width: 100%;
+      width: 85%;
       padding: 10px 15px;
       font-size: 14px;
       border: 1px solid #d9d9d9;
       border-radius: 4px;
       box-sizing: border-box;
       outline: none;
+      display: block;
+      margin: 0 auto;
     `;
 
     // Create results counter

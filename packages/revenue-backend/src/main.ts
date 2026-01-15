@@ -48,7 +48,7 @@ async function bootstrap() {
     `,
     customJs: '/swagger-search.js', // Custom search functionality
     swaggerOptions: {
-      filter: true, // Enable tag filter
+      // filter: true, // Enable tag filter
       showRequestDuration: true, // Show request duration
       persistAuthorization: true, // Persist authorization data
       displayOperationId: false, // Hide operation IDs
