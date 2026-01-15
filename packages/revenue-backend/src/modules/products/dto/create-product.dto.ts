@@ -111,8 +111,7 @@ export class CreateProductDto {
     ],
   })
   @IsOptional()
-  @IsObject()
-  volumeTiers?: Record<string, any>;
+  volumeTiers?: any; // JSON field - can be array or object
 
   @ApiPropertyOptional({
     description: 'Billing interval',
@@ -144,6 +143,5 @@ export class CreateProductDto {
     example: { category: 'subscription', features: ['feature1', 'feature2'] },
   })
   @IsOptional()
-  @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: any; // JSON field - flexible structure
 }
