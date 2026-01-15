@@ -46,7 +46,7 @@ export function parseQueryKey(key: string): {
  * Parse pagination parameters from query string
  */
 export function parsePaginationParams(query: Record<string, any>): PaginationParams {
-  const offset = parseInt(query['offset[eq]']) || 0;
+  let offset = parseInt(query['offset[eq]']) || 0;
   let limit = parseInt(query['limit[eq]']) || 20;
 
   // Enforce maximum limit

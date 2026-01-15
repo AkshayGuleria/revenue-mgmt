@@ -7,12 +7,18 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateAccountDto, UpdateAccountDto, QueryAccountsDto } from './dto';
 import { Prisma } from '@prisma/client';
+import { parseQuery } from '../../common/utils/query-parser';
+import {
+  buildSingleResponse,
+  buildPaginatedListResponse,
+} from '../../common/utils/response-builder';
+import { ApiResponse } from '../../common/interfaces';
 
 @Injectable()
 export class AccountsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createAccountDto: CreateAccountDto) {
+  async create(createAccountDto: CreateAccountDto): Promise<ApiResponse<any>> {
     const { parentAccountId, ...data } = createAccountDto;
 
     // Validate parent account exists if provided
@@ -36,12 +42,14 @@ export class AccountsService {
     }
 
     try {
-      return await this.prisma.account.create({
+      const account = await this.prisma.account.create({
         data: {
           ...data,
           parentAccountId,
         },
       });
+
+      return buildSingleResponse(account);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -52,49 +60,21 @@ export class AccountsService {
     }
   }
 
-  async findAll(query: QueryAccountsDto) {
-    const {
-      search,
-      accountType,
-      status,
-      parentAccountId,
-      page = 1,
-      limit = 20,
-    } = query;
+  async findAll(query: QueryAccountsDto): Promise<ApiResponse<any>> {
+    // Parse query parameters using utility
+    const { pagination, where: parsedWhere } = parseQuery(query);
 
+    // Build complete where clause
     const where: Prisma.AccountWhereInput = {
-      deletedAt: null, // Only active accounts
+      ...parsedWhere,
+      deletedAt: null, // Always exclude soft-deleted accounts
     };
-
-    // Apply search filter
-    if (search) {
-      where.OR = [
-        { accountName: { contains: search, mode: 'insensitive' } },
-        { primaryContactEmail: { contains: search, mode: 'insensitive' } },
-        { billingContactEmail: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    // Apply filters
-    if (accountType) {
-      where.accountType = accountType;
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (parentAccountId) {
-      where.parentAccountId = parentAccountId;
-    }
-
-    const skip = (page - 1) * limit;
 
     const [accounts, total] = await Promise.all([
       this.prisma.account.findMany({
         where,
-        skip,
-        take: limit,
+        skip: pagination.offset,
+        take: pagination.limit,
         orderBy: { createdAt: 'desc' },
         include: {
           parent: {
@@ -115,18 +95,15 @@ export class AccountsService {
       this.prisma.account.count({ where }),
     ]);
 
-    return {
-      data: accounts,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedListResponse(
+      accounts,
+      pagination.offset,
+      pagination.limit,
+      total,
+    );
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<ApiResponse<any>> {
     const account = await this.prisma.account.findUnique({
       where: { id },
       include: {
@@ -169,11 +146,14 @@ export class AccountsService {
       throw new NotFoundException(`Account with ID ${id} not found`);
     }
 
-    return account;
+    return buildSingleResponse(account);
   }
 
-  async update(id: string, updateAccountDto: UpdateAccountDto) {
-    // Check if account exists
+  async update(
+    id: string,
+    updateAccountDto: UpdateAccountDto,
+  ): Promise<ApiResponse<any>> {
+    // Check if account exists (this will throw if not found)
     await this.findOne(id);
 
     const { parentAccountId, ...data } = updateAccountDto;
@@ -193,9 +173,7 @@ export class AccountsService {
 
         // Prevent self-referencing
         if (parentAccountId === id) {
-          throw new BadRequestException(
-            'Account cannot be its own parent',
-          );
+          throw new BadRequestException('Account cannot be its own parent');
         }
 
         // Check for circular hierarchy
@@ -204,13 +182,15 @@ export class AccountsService {
     }
 
     try {
-      return await this.prisma.account.update({
+      const account = await this.prisma.account.update({
         where: { id },
         data: {
           ...data,
           ...(parentAccountId !== undefined && { parentAccountId }),
         },
       });
+
+      return buildSingleResponse(account);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -221,12 +201,12 @@ export class AccountsService {
     }
   }
 
-  async remove(id: string) {
-    // Check if account exists
+  async remove(id: string): Promise<void> {
+    // Check if account exists (this will throw if not found)
     await this.findOne(id);
 
     // Soft delete
-    return await this.prisma.account.update({
+    await this.prisma.account.update({
       where: { id },
       data: {
         deletedAt: new Date(),

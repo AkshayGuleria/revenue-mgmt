@@ -15,7 +15,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto, UpdateAccountDto, QueryAccountsDto } from './dto';
@@ -28,11 +27,30 @@ export class AccountsController {
   @Post()
   @ApiOperation({
     summary: 'Create new account',
-    description: 'Create a new enterprise account with optional hierarchical parent',
+    description:
+      'Create a new enterprise account with optional hierarchical parent. ' +
+      'Returns account wrapped in standard API response structure with empty paging object.',
   })
   @ApiResponse({
     status: 201,
     description: 'Account successfully created',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'object' },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'null' },
+            limit: { type: 'null' },
+            total: { type: 'null' },
+            totalPages: { type: 'null' },
+            hasNext: { type: 'null' },
+            hasPrev: { type: 'null' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -52,50 +70,15 @@ export class AccountsController {
 
   @Get()
   @ApiOperation({
-    summary: 'List all accounts with filtering and pagination',
+    summary: 'List accounts with operator-based filtering and pagination',
     description:
-      'Retrieve accounts with optional search, filters (type, status, parent), and pagination',
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-    description: 'Search in account name and email fields (case-insensitive)',
-    example: 'acme',
-  })
-  @ApiQuery({
-    name: 'accountType',
-    required: false,
-    enum: ['enterprise', 'smb', 'startup'],
-    description: 'Filter by account type',
-  })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    enum: ['active', 'inactive', 'suspended'],
-    description: 'Filter by account status',
-  })
-  @ApiQuery({
-    name: 'parentAccountId',
-    required: false,
-    description: 'Filter by parent account (get all children of this parent)',
-  })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number (starts at 1)',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Items per page (1-100)',
-    example: 20,
+      'Retrieve accounts using operator-based query parameters (ADR-003). ' +
+      'Supports filtering, searching, and offset-based pagination. ' +
+      'Returns paginated list with full paging metadata.',
   })
   @ApiResponse({
     status: 200,
-    description: 'List of accounts with pagination metadata',
+    description: 'Paginated list of accounts',
     schema: {
       type: 'object',
       properties: {
@@ -103,14 +86,34 @@ export class AccountsController {
           type: 'array',
           items: { type: 'object' },
         },
-        meta: {
+        paging: {
           type: 'object',
           properties: {
-            total: { type: 'number', example: 100 },
-            page: { type: 'number', example: 1 },
+            offset: { type: 'number', example: 0 },
             limit: { type: 'number', example: 20 },
-            totalPages: { type: 'number', example: 5 },
+            total: { type: 'number', example: 156 },
+            totalPages: { type: 'number', example: 8 },
+            hasNext: { type: 'boolean', example: true },
+            hasPrev: { type: 'boolean', example: false },
           },
+        },
+      },
+      example: {
+        data: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            accountName: 'Acme Corporation',
+            status: 'active',
+            accountType: 'enterprise',
+          },
+        ],
+        paging: {
+          offset: 0,
+          limit: 20,
+          total: 156,
+          totalPages: 8,
+          hasNext: true,
+          hasPrev: false,
         },
       },
     },
@@ -123,7 +126,8 @@ export class AccountsController {
   @ApiOperation({
     summary: 'Get account by ID',
     description:
-      'Retrieve detailed account information including parent, children, and active contracts',
+      'Retrieve detailed account information including parent, children, and active contracts. ' +
+      'Returns single resource with empty paging object.',
   })
   @ApiParam({
     name: 'id',
@@ -133,6 +137,23 @@ export class AccountsController {
   @ApiResponse({
     status: 200,
     description: 'Account details retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'object' },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'null' },
+            limit: { type: 'null' },
+            total: { type: 'null' },
+            totalPages: { type: 'null' },
+            hasNext: { type: 'null' },
+            hasPrev: { type: 'null' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -145,7 +166,9 @@ export class AccountsController {
   @Patch(':id')
   @ApiOperation({
     summary: 'Update account',
-    description: 'Update account information. Validates hierarchy changes to prevent circular references.',
+    description:
+      'Update account information. Validates hierarchy changes to prevent circular references. ' +
+      'Returns updated account with empty paging object.',
   })
   @ApiParam({
     name: 'id',
@@ -155,6 +178,23 @@ export class AccountsController {
   @ApiResponse({
     status: 200,
     description: 'Account successfully updated',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'object' },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'null' },
+            limit: { type: 'null' },
+            total: { type: 'null' },
+            totalPages: { type: 'null' },
+            hasNext: { type: 'null' },
+            hasPrev: { type: 'null' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -176,7 +216,9 @@ export class AccountsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete account',
-    description: 'Soft delete an account (sets deletedAt and status to inactive)',
+    description:
+      'Soft delete an account (sets deletedAt and status to inactive). ' +
+      'Returns 204 No Content on success.',
   })
   @ApiParam({
     name: 'id',
