@@ -6,7 +6,14 @@
     "builder": "swc",
     "typeCheck": true,
     "deleteOutDir": true,
-    "assets": ["**/*.prisma"],
+    "assets": [
+      "**/*.prisma",
+      {
+        "include": "../public/**/*",
+        "outDir": "dist/public",
+        "watchAssets": true
+      }
+    ],
     "watchAssets": true
   }
 }

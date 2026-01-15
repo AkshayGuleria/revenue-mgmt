@@ -6,6 +6,7 @@ import {
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -25,6 +26,13 @@ async function bootstrap() {
   // CORS configuration
   app.enableCors();
 
+  // Serve static files from public directory
+  await app.register(require('@fastify/static'), {
+    root: join(__dirname, 'public'),
+    prefix: '/',
+    decorateReply: false, // Don't add reply.sendFile method
+  });
+
   // Swagger API documentation
   const config = new DocumentBuilder()
     .setTitle('Revenue Management API')
@@ -34,12 +42,19 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document, {
+    customCss: `
+      .swagger-ui .topbar { display: none }
+      .swagger-ui .info { margin: 20px 0 }
+    `,
+    customJs: '/swagger-search.js', // Custom search functionality
     swaggerOptions: {
-      filter: true, // Enable search/filter box
+      filter: true, // Enable tag filter
       showRequestDuration: true, // Show request duration
       persistAuthorization: true, // Persist authorization data
       displayOperationId: false, // Hide operation IDs
       tryItOutEnabled: true, // Enable "Try it out" by default
+      deepLinking: true, // Enable deep linking for operations
+      displayRequestDuration: true, // Show request duration in responses
     },
   });
 
