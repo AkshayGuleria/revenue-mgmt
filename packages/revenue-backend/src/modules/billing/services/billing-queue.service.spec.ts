@@ -1,0 +1,317 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { getQueueToken } from '@nestjs/bullmq';
+import { BillingQueueService } from './billing-queue.service';
+import { QUEUE_NAMES } from '../../../common/queues';
+
+describe('BillingQueueService', () => {
+  let service: BillingQueueService;
+  let mockQueue: any;
+
+  beforeEach(async () => {
+    mockQueue = {
+      add: jest.fn(),
+      getJob: jest.fn(),
+      getWaitingCount: jest.fn(),
+      getActiveCount: jest.fn(),
+      getCompletedCount: jest.fn(),
+      getFailedCount: jest.fn(),
+      getDelayedCount: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        BillingQueueService,
+        {
+          provide: getQueueToken(QUEUE_NAMES.CONTRACT_BILLING),
+          useValue: mockQueue,
+        },
+      ],
+    }).compile();
+
+    service = module.get<BillingQueueService>(BillingQueueService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('queueContractInvoiceGeneration', () => {
+    it('should queue a contract invoice generation job', async () => {
+      const jobData = {
+        contractId: 'contract-123',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-03-31',
+      };
+
+      const mockJob = { id: 'job-123' };
+      mockQueue.add.mockResolvedValue(mockJob);
+
+      const result = await service.queueContractInvoiceGeneration(jobData);
+
+      expect(result).toBe('job-123');
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'generate-contract-invoice',
+        jobData,
+        {
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    });
+
+    it('should queue job without optional period dates', async () => {
+      const jobData = {
+        contractId: 'contract-123',
+      };
+
+      const mockJob = { id: 'job-456' };
+      mockQueue.add.mockResolvedValue(mockJob);
+
+      const result = await service.queueContractInvoiceGeneration(jobData);
+
+      expect(result).toBe('job-456');
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'generate-contract-invoice',
+        jobData,
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('queueBatchContractBilling', () => {
+    it('should queue a batch contract billing job', async () => {
+      const jobData = {
+        billingDate: '2026-01-01',
+        billingPeriod: 'monthly' as const,
+      };
+
+      const mockJob = { id: 'batch-job-123' };
+      mockQueue.add.mockResolvedValue(mockJob);
+
+      const result = await service.queueBatchContractBilling(jobData);
+
+      expect(result).toBe('batch-job-123');
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'batch-contract-billing',
+        jobData,
+        {
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    });
+
+    it('should queue batch job with quarterly period', async () => {
+      const jobData = {
+        billingDate: '2026-01-01',
+        billingPeriod: 'quarterly' as const,
+      };
+
+      const mockJob = { id: 'batch-job-456' };
+      mockQueue.add.mockResolvedValue(mockJob);
+
+      const result = await service.queueBatchContractBilling(jobData);
+
+      expect(result).toBe('batch-job-456');
+    });
+
+    it('should queue batch job with annual period', async () => {
+      const jobData = {
+        billingDate: '2026-01-01',
+        billingPeriod: 'annual' as const,
+      };
+
+      const mockJob = { id: 'batch-job-789' };
+      mockQueue.add.mockResolvedValue(mockJob);
+
+      const result = await service.queueBatchContractBilling(jobData);
+
+      expect(result).toBe('batch-job-789');
+    });
+  });
+
+  describe('getJobStatus', () => {
+    it('should return null if job not found', async () => {
+      mockQueue.getJob.mockResolvedValue(null);
+
+      const result = await service.getJobStatus('nonexistent-job');
+
+      expect(result).toBeNull();
+      expect(mockQueue.getJob).toHaveBeenCalledWith('nonexistent-job');
+    });
+
+    it('should return job status for waiting job', async () => {
+      const mockJob = {
+        id: 'job-123',
+        name: 'generate-contract-invoice',
+        data: { contractId: 'contract-123' },
+        getState: jest.fn().mockResolvedValue('waiting'),
+        progress: 0,
+        returnvalue: null,
+        failedReason: null,
+        attemptsMade: 0,
+        processedOn: null,
+        finishedOn: null,
+      };
+
+      mockQueue.getJob.mockResolvedValue(mockJob);
+
+      const result = await service.getJobStatus('job-123');
+
+      expect(result).toEqual({
+        id: 'job-123',
+        name: 'generate-contract-invoice',
+        data: { contractId: 'contract-123' },
+        state: 'waiting',
+        progress: 0,
+        result: null,
+        error: null,
+        attemptsMade: 0,
+        processedOn: null,
+        finishedOn: null,
+      });
+    });
+
+    it('should return job status for completed job', async () => {
+      const mockJob = {
+        id: 'job-123',
+        name: 'generate-contract-invoice',
+        data: { contractId: 'contract-123' },
+        getState: jest.fn().mockResolvedValue('completed'),
+        progress: 100,
+        returnvalue: {
+          invoiceId: 'invoice-123',
+          invoiceNumber: 'INV-2026-000001',
+        },
+        failedReason: null,
+        attemptsMade: 1,
+        processedOn: 1737154400000,
+        finishedOn: 1737154405000,
+      };
+
+      mockQueue.getJob.mockResolvedValue(mockJob);
+
+      const result = await service.getJobStatus('job-123');
+
+      expect(result).toEqual({
+        id: 'job-123',
+        name: 'generate-contract-invoice',
+        data: { contractId: 'contract-123' },
+        state: 'completed',
+        progress: 100,
+        result: {
+          invoiceId: 'invoice-123',
+          invoiceNumber: 'INV-2026-000001',
+        },
+        error: null,
+        attemptsMade: 1,
+        processedOn: 1737154400000,
+        finishedOn: 1737154405000,
+      });
+    });
+
+    it('should return job status for failed job', async () => {
+      const mockJob = {
+        id: 'job-123',
+        name: 'generate-contract-invoice',
+        data: { contractId: 'contract-123' },
+        getState: jest.fn().mockResolvedValue('failed'),
+        progress: 0,
+        returnvalue: null,
+        failedReason: 'Contract not found',
+        attemptsMade: 3,
+        processedOn: 1737154400000,
+        finishedOn: 1737154410000,
+      };
+
+      mockQueue.getJob.mockResolvedValue(mockJob);
+
+      const result = await service.getJobStatus('job-123');
+
+      expect(result?.state).toBe('failed');
+      expect(result?.error).toBe('Contract not found');
+      expect(result?.attemptsMade).toBe(3);
+    });
+
+    it('should return job status for active job with progress', async () => {
+      const mockJob = {
+        id: 'job-123',
+        name: 'batch-contract-billing',
+        data: { billingDate: '2026-01-01', billingPeriod: 'monthly' },
+        getState: jest.fn().mockResolvedValue('active'),
+        progress: 50,
+        returnvalue: null,
+        failedReason: null,
+        attemptsMade: 1,
+        processedOn: 1737154400000,
+        finishedOn: null,
+      };
+
+      mockQueue.getJob.mockResolvedValue(mockJob);
+
+      const result = await service.getJobStatus('job-123');
+
+      expect(result?.state).toBe('active');
+      expect(result?.progress).toBe(50);
+      expect(result?.finishedOn).toBeNull();
+    });
+  });
+
+  describe('getQueueStats', () => {
+    it('should return queue statistics', async () => {
+      mockQueue.getWaitingCount.mockResolvedValue(5);
+      mockQueue.getActiveCount.mockResolvedValue(2);
+      mockQueue.getCompletedCount.mockResolvedValue(100);
+      mockQueue.getFailedCount.mockResolvedValue(3);
+      mockQueue.getDelayedCount.mockResolvedValue(1);
+
+      const result = await service.getQueueStats();
+
+      expect(result).toEqual({
+        queue: 'contract-billing',
+        waiting: 5,
+        active: 2,
+        completed: 100,
+        failed: 3,
+        delayed: 1,
+        total: 111,
+      });
+    });
+
+    it('should return empty queue statistics', async () => {
+      mockQueue.getWaitingCount.mockResolvedValue(0);
+      mockQueue.getActiveCount.mockResolvedValue(0);
+      mockQueue.getCompletedCount.mockResolvedValue(0);
+      mockQueue.getFailedCount.mockResolvedValue(0);
+      mockQueue.getDelayedCount.mockResolvedValue(0);
+
+      const result = await service.getQueueStats();
+
+      expect(result).toEqual({
+        queue: 'contract-billing',
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        total: 0,
+      });
+    });
+
+    it('should handle large numbers correctly', async () => {
+      mockQueue.getWaitingCount.mockResolvedValue(1000);
+      mockQueue.getActiveCount.mockResolvedValue(50);
+      mockQueue.getCompletedCount.mockResolvedValue(50000);
+      mockQueue.getFailedCount.mockResolvedValue(100);
+      mockQueue.getDelayedCount.mockResolvedValue(25);
+
+      const result = await service.getQueueStats();
+
+      expect(result.total).toBe(51175);
+    });
+  });
+});

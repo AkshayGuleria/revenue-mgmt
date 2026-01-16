@@ -1,0 +1,385 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { ValidationPipe } from '@nestjs/common';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
+import * as request from 'supertest';
+import { AppModule } from '../src/app.module';
+import { PrismaService } from '../src/common/prisma/prisma.service';
+import { BillingFrequency } from '../src/modules/contracts/dto/create-contract.dto';
+
+describe('Billing API (e2e)', () => {
+  let app: NestFastifyApplication;
+  let prisma: PrismaService;
+  let testAccountId: string;
+  let testContractId: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    );
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+
+    await app.init();
+    await app.getHttpAdapter().getInstance().ready();
+
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+
+    // Create test account
+    const testAccount = await prisma.account.create({
+      data: {
+        accountName: 'Test Billing Account',
+        primaryContactEmail: 'test-billing@example.com',
+        paymentTermsDays: 30,
+        currency: 'USD',
+      },
+    });
+    testAccountId = testAccount.id;
+
+    // Create test contract
+    const testContract = await prisma.contract.create({
+      data: {
+        contractNumber: 'TEST-BILL-CNT-001',
+        accountId: testAccountId,
+        startDate: new Date('2026-01-01'),
+        endDate: new Date('2026-12-31'),
+        contractValue: 120000,
+        billingFrequency: BillingFrequency.QUARTERLY,
+        seatCount: 50,
+        committedSeats: 50,
+        seatPrice: 600,
+        status: 'active',
+      },
+    });
+    testContractId = testContract.id;
+  });
+
+  afterAll(async () => {
+    // Clean up test data
+    await prisma.invoice.deleteMany({
+      where: {
+        invoiceNumber: { contains: 'TEST-' },
+      },
+    });
+
+    await prisma.contract.deleteMany({
+      where: {
+        contractNumber: { contains: 'TEST-BILL' },
+      },
+    });
+
+    await prisma.account.deleteMany({
+      where: {
+        primaryContactEmail: 'test-billing@example.com',
+      },
+    });
+
+    await app.close();
+  });
+
+  describe('POST /billing/generate', () => {
+    it('should generate invoice synchronously from contract', () => {
+      return request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: testContractId,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(res.body.data).toHaveProperty('invoiceId');
+          expect(res.body.data).toHaveProperty('invoiceNumber');
+          expect(res.body.data).toHaveProperty('total');
+          expect(res.body.data.total).toBe('30000');
+          expect(res.body).toHaveProperty('paging');
+        });
+    });
+
+    it('should generate invoice with custom period dates', () => {
+      return request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: testContractId,
+          periodStart: '2026-01-01',
+          periodEnd: '2026-03-31',
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.data).toHaveProperty('invoiceId');
+          expect(res.body.data.total).toBe('30000');
+        });
+    });
+
+    it('should return 404 for non-existent contract', () => {
+      return request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: '00000000-0000-0000-0000-000000000000',
+        })
+        .expect(404);
+    });
+
+    it('should validate required fields', () => {
+      return request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({})
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.message).toContain('contractId');
+        });
+    });
+
+    it('should validate date format for period dates', () => {
+      return request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: testContractId,
+          periodStart: 'invalid-date',
+        })
+        .expect(400);
+    });
+  });
+
+  describe('POST /billing/queue', () => {
+    it('should queue invoice generation job', () => {
+      return request(app.getHttpServer())
+        .post('/billing/queue')
+        .send({
+          contractId: testContractId,
+        })
+        .expect(202)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(res.body.data).toHaveProperty('jobId');
+          expect(res.body.data).toHaveProperty('status', 'queued');
+          expect(res.body.data).toHaveProperty('message');
+        });
+    });
+
+    it('should queue job with custom period dates', () => {
+      return request(app.getHttpServer())
+        .post('/billing/queue')
+        .send({
+          contractId: testContractId,
+          periodStart: '2026-04-01',
+          periodEnd: '2026-06-30',
+        })
+        .expect(202)
+        .expect((res) => {
+          expect(res.body.data).toHaveProperty('jobId');
+          expect(res.body.data.status).toBe('queued');
+        });
+    });
+
+    it('should validate contract ID in queued job', () => {
+      return request(app.getHttpServer())
+        .post('/billing/queue')
+        .send({})
+        .expect(400);
+    });
+  });
+
+  describe('POST /billing/batch', () => {
+    it('should queue batch billing job', () => {
+      return request(app.getHttpServer())
+        .post('/billing/batch')
+        .send({})
+        .expect(202)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(res.body.data).toHaveProperty('jobId');
+          expect(res.body.data).toHaveProperty('status', 'queued');
+        });
+    });
+
+    it('should queue batch job with billing date', () => {
+      return request(app.getHttpServer())
+        .post('/billing/batch')
+        .send({
+          billingDate: '2026-01-01',
+          billingPeriod: 'monthly',
+        })
+        .expect(202)
+        .expect((res) => {
+          expect(res.body.data).toHaveProperty('jobId');
+        });
+    });
+
+    it('should queue batch job with quarterly period', () => {
+      return request(app.getHttpServer())
+        .post('/billing/batch')
+        .send({
+          billingDate: '2026-01-01',
+          billingPeriod: 'quarterly',
+        })
+        .expect(202);
+    });
+
+    it('should queue batch job with annual period', () => {
+      return request(app.getHttpServer())
+        .post('/billing/batch')
+        .send({
+          billingDate: '2026-01-01',
+          billingPeriod: 'annual',
+        })
+        .expect(202);
+    });
+
+    it('should validate billing date format', () => {
+      return request(app.getHttpServer())
+        .post('/billing/batch')
+        .send({
+          billingDate: 'invalid-date',
+        })
+        .expect(400);
+    });
+  });
+
+  describe('GET /billing/jobs/:jobId', () => {
+    it('should return job status for valid job ID', async () => {
+      // Queue a job first
+      const queueResponse = await request(app.getHttpServer())
+        .post('/billing/queue')
+        .send({
+          contractId: testContractId,
+        });
+
+      const jobId = queueResponse.body.data.jobId;
+
+      // Wait a bit for job to process
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      return request(app.getHttpServer())
+        .get(`/billing/jobs/${jobId}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(res.body).toHaveProperty('paging');
+        });
+    });
+
+    it('should return null for non-existent job', () => {
+      return request(app.getHttpServer())
+        .get('/billing/jobs/999999')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data).toBeNull();
+        });
+    });
+  });
+
+  describe('GET /billing/queue/stats', () => {
+    it('should return queue statistics', () => {
+      return request(app.getHttpServer())
+        .get('/billing/queue/stats')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(res.body.data).toHaveProperty('queue', 'contract-billing');
+          expect(res.body.data).toHaveProperty('waiting');
+          expect(res.body.data).toHaveProperty('active');
+          expect(res.body.data).toHaveProperty('completed');
+          expect(res.body.data).toHaveProperty('failed');
+          expect(res.body.data).toHaveProperty('delayed');
+          expect(res.body.data).toHaveProperty('total');
+        });
+    });
+
+    it('should return valid numeric statistics', () => {
+      return request(app.getHttpServer())
+        .get('/billing/queue/stats')
+        .expect(200)
+        .expect((res) => {
+          expect(typeof res.body.data.waiting).toBe('number');
+          expect(typeof res.body.data.active).toBe('number');
+          expect(typeof res.body.data.completed).toBe('number');
+          expect(typeof res.body.data.failed).toBe('number');
+          expect(typeof res.body.data.delayed).toBe('number');
+          expect(typeof res.body.data.total).toBe('number');
+        });
+    });
+  });
+
+  describe('Invoice Generation Verification', () => {
+    it('should create invoice in database when generating synchronously', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: testContractId,
+        });
+
+      const invoiceId = response.body.data.invoiceId;
+
+      // Verify invoice exists in database
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        include: { items: true },
+      });
+
+      expect(invoice).toBeDefined();
+      expect(invoice?.contractId).toBe(testContractId);
+      expect(invoice?.accountId).toBe(testAccountId);
+      expect(invoice?.status).toBe('draft');
+      expect(invoice?.total.toString()).toBe('30000.00');
+
+      // Verify invoice items
+      expect(invoice?.items).toHaveLength(1);
+      expect(invoice?.items[0].description).toContain('Quarterly Subscription');
+      expect(invoice?.items[0].quantity.toString()).toBe('50.00');
+      expect(invoice?.items[0].unitPrice.toString()).toBe('600.00');
+      expect(invoice?.items[0].amount.toString()).toBe('30000.00');
+    });
+
+    it('should calculate correct due date based on payment terms', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: testContractId,
+        });
+
+      const invoiceId = response.body.data.invoiceId;
+
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+      });
+
+      // Payment terms are 30 days
+      const issueDate = new Date(invoice!.issueDate);
+      const dueDate = new Date(invoice!.dueDate);
+      const daysDifference = Math.round(
+        (dueDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      expect(daysDifference).toBe(30);
+    });
+
+    it('should generate unique invoice numbers', async () => {
+      const response1 = await request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: testContractId,
+        });
+
+      const response2 = await request(app.getHttpServer())
+        .post('/billing/generate')
+        .send({
+          contractId: testContractId,
+        });
+
+      expect(response1.body.data.invoiceNumber).not.toBe(
+        response2.body.data.invoiceNumber,
+      );
+    });
+  });
+});
