@@ -1,0 +1,87 @@
+version: '3.8'
+
+# Local Testing Docker Compose
+# Mirrors production setup but optimized for local development/testing
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: revenue-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-revenue_local}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-local_password_123}
+      POSTGRES_DB: ${DB_NAME:-revenue_db_local}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "${DB_PORT:-5433}:5432"  # Use 5433 to avoid conflicts with local PostgreSQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-revenue_local}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - revenue-network-local
+
+  # Revenue Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: revenue-api-local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-5177}
+      DATABASE_URL: postgresql://${DB_USER:-revenue_local}:${DB_PASSWORD:-local_password_123}@postgres:5432/${DB_NAME:-revenue_db_local}?schema=public
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "${PORT:-5177}:5177"
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5177/health/liveness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - revenue-network-local
+
+  # Nginx (Optional for local testing)
+  nginx:
+    image: nginx:alpine
+    container_name: revenue-nginx-local
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"  # Use 8080 to avoid conflicts
+    volumes:
+      - ./nginx/nginx-local.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/revenue-api-local.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      - revenue-network-local
+    profiles:
+      - with-nginx  # Only start nginx when explicitly requested
+
+networks:
+  revenue-network-local:
+    driver: bridge
+    name: revenue-network-local
+
+volumes:
+  postgres_data_local:
+    driver: local
+    name: revenue_postgres_data_local

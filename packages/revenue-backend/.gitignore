@@ -31,3 +31,6 @@ coverage/
 
 # Prisma
 prisma/migrations/*.sql
+
+# Backups
+backups/

@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: revenue-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-revenue}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-revenue_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-revenue}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revenue-network
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+
+  # Revenue Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: revenue-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-5177}
+      DATABASE_URL: postgresql://${DB_USER:-revenue}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-revenue_db}?schema=public
+      # Add other environment variables from .env.production
+    ports:
+      - "${PORT:-5177}:5177"
+    volumes:
+      # Mount logs directory
+      - ./logs:/app/logs
+      # Mount uploads/temp directories if needed
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5177/health/liveness || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    networks:
+      - revenue-network
+    # Resource limits (adjust based on your VPS capacity)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Nginx Reverse Proxy (optional but recommended)
+  nginx:
+    image: nginx:alpine
+    container_name: revenue-nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      - revenue-network
+
+networks:
+  revenue-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
