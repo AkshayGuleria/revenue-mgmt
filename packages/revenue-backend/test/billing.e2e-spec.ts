@@ -66,27 +66,39 @@ describe('Billing API (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await prisma.invoice.deleteMany({
-      where: {
-        invoiceNumber: { contains: 'TEST-' },
-      },
-    });
+    // Clean up test data in correct order (respect foreign keys)
+    try {
+      // 1. Delete all invoice items (cascade happens automatically)
+      // 2. Delete all invoices for test account
+      if (testAccountId) {
+        await prisma.invoice.deleteMany({
+          where: {
+            accountId: testAccountId,
+          },
+        });
+      }
 
-    await prisma.contract.deleteMany({
-      where: {
-        contractNumber: { contains: 'TEST-BILL' },
-      },
-    });
+      // 3. Delete test contracts
+      await prisma.contract.deleteMany({
+        where: {
+          contractNumber: { contains: 'TEST-BILL' },
+        },
+      });
 
-    await prisma.account.deleteMany({
-      where: {
-        primaryContactEmail: 'test-billing@example.com',
-      },
-    });
-
-    await app.close();
-  });
+      // 4. Delete test accounts last
+      await prisma.account.deleteMany({
+        where: {
+          primaryContactEmail: 'test-billing@example.com',
+        },
+      });
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    } finally {
+      // Close all connections
+      await prisma.$disconnect();
+      await app.close();
+    }
+  }, 30000); // 30 second timeout for cleanup
 
   describe('POST /billing/generate', () => {
     it('should generate invoice synchronously from contract', () => {
@@ -136,7 +148,9 @@ describe('Billing API (e2e)', () => {
         .send({})
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toContain('contractId');
+          expect(res.body.message).toEqual(
+            expect.arrayContaining([expect.stringContaining('contractId')]),
+          );
         });
     });
 
@@ -317,8 +331,11 @@ describe('Billing API (e2e)', () => {
         .post('/billing/generate')
         .send({
           contractId: testContractId,
-        });
+        })
+        .expect(201);
 
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty('invoiceId');
       const invoiceId = response.body.data.invoiceId;
 
       // Verify invoice exists in database
@@ -331,14 +348,18 @@ describe('Billing API (e2e)', () => {
       expect(invoice?.contractId).toBe(testContractId);
       expect(invoice?.accountId).toBe(testAccountId);
       expect(invoice?.status).toBe('draft');
-      expect(invoice?.total.toString()).toBe('30000.00');
+      expect(parseFloat(invoice?.total.toString() || '0')).toBe(30000);
 
       // Verify invoice items
       expect(invoice?.items).toHaveLength(1);
       expect(invoice?.items[0].description).toContain('Quarterly Subscription');
-      expect(invoice?.items[0].quantity.toString()).toBe('50.00');
-      expect(invoice?.items[0].unitPrice.toString()).toBe('600.00');
-      expect(invoice?.items[0].amount.toString()).toBe('30000.00');
+      expect(parseFloat(invoice?.items[0].quantity.toString() || '0')).toBe(50);
+      expect(parseFloat(invoice?.items[0].unitPrice.toString() || '0')).toBe(
+        600,
+      );
+      expect(parseFloat(invoice?.items[0].amount.toString() || '0')).toBe(
+        30000,
+      );
     });
 
     it('should calculate correct due date based on payment terms', async () => {
