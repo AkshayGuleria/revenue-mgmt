@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -8,6 +9,8 @@ import { AccountsModule } from './modules/accounts/accounts.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { ProductsModule } from './modules/products/products.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { getQueueConfig } from './common/queues';
 
 @Module({
   imports: [
@@ -15,12 +18,19 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    // BullMQ Configuration for Phase 2
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: getQueueConfig,
+      inject: [ConfigService],
+    }),
     PrismaModule,
     HealthModule,
     AccountsModule,
     ContractsModule,
     ProductsModule,
     InvoicesModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

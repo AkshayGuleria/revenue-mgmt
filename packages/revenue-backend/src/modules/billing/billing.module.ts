@@ -1,0 +1,28 @@
+import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
+import { BillingController } from './billing.controller';
+import { BillingEngineService } from './services/billing-engine.service';
+import { SeatCalculatorService } from './services/seat-calculator.service';
+import { BillingQueueService } from './services/billing-queue.service';
+import { ContractBillingProcessor } from './processors/contract-billing.processor';
+import { PrismaModule } from '../../common/prisma/prisma.module';
+import { QUEUE_NAMES } from '../../common/queues';
+
+@Module({
+  imports: [
+    PrismaModule,
+    // Register contract billing queue
+    BullModule.registerQueue({
+      name: QUEUE_NAMES.CONTRACT_BILLING,
+    }),
+  ],
+  controllers: [BillingController],
+  providers: [
+    BillingEngineService,
+    SeatCalculatorService,
+    BillingQueueService,
+    ContractBillingProcessor,
+  ],
+  exports: [BillingEngineService, SeatCalculatorService, BillingQueueService],
+})
+export class BillingModule {}
