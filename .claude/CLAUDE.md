@@ -416,6 +416,81 @@ B2C features (usage-based billing, pay-as-you-go, self-service) are deferred to 
   - PM2 ecosystem configuration
   - BullMQ queue setup and worker patterns
   - Progress log and decision history
+- **docs/features/** - Feature-specific documentation (created upon feature implementation)
+
+### Feature Documentation Requirements
+
+**MANDATORY:** When a new feature is implemented, you MUST create comprehensive feature documentation at `docs/features/<feature-name>.md`.
+
+**Documentation Structure:**
+
+Each feature document must include:
+
+1. **Header Section:**
+   - Status (Implemented/In Progress/Planned)
+   - Phase (Phase 1-5)
+   - Implementation Date
+   - ADR Compliance references
+
+2. **Overview:**
+   - High-level description of the feature
+   - Business context and use cases
+
+3. **Database Schema:**
+   - Prisma schema snippet
+   - Key indices and constraints
+   - Relationships to other entities
+
+4. **API Endpoints:**
+   - Complete endpoint documentation
+   - Request/response examples (ADR-003 compliant)
+   - Query parameter operators
+   - Error responses
+   - Validation rules
+
+5. **Implementation Details:**
+   - Project structure
+   - Technology stack
+   - Key features and business logic
+   - Code examples for complex logic
+
+6. **Testing:**
+   - Test file location
+   - Coverage percentage
+   - Test scenarios covered
+   - How to run tests
+
+7. **Usage Examples:**
+   - cURL examples for common operations
+   - Example workflows
+
+8. **Performance Considerations:**
+   - Database optimization strategies
+   - Caching strategy
+   - Query optimization
+
+9. **Security Considerations:**
+   - Input validation
+   - Data integrity
+   - Error handling
+
+10. **Future Enhancements:**
+    - Planned improvements by phase
+    - Advanced features
+
+11. **Related Features:**
+    - Links to related feature docs
+    - Integration points
+
+**Examples:**
+- `docs/features/accounts.md` - Accounts API feature
+- `docs/features/contracts.md` - Contracts API feature
+- `docs/features/products.md` - Products API feature
+
+**When to Create:**
+- Immediately after implementing a new API/feature
+- Before marking a task/phase as complete
+- As part of the PR review checklist
 
 ## Key Constraints and Design Decisions
 
