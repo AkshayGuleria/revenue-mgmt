@@ -8,12 +8,16 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { BillingFrequency } from '../src/modules/contracts/dto/create-contract.dto';
+import { getQueueToken } from '@nestjs/bullmq';
+import { QUEUE_NAMES } from '../src/common/queues';
+import { Queue } from 'bullmq';
 
 describe('Billing API (e2e)', () => {
   let app: NestFastifyApplication;
   let prisma: PrismaService;
   let testAccountId: string;
   let testContractId: string;
+  let contractBillingQueue: Queue;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -35,6 +39,11 @@ describe('Billing API (e2e)', () => {
     await app.getHttpAdapter().getInstance().ready();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
+
+    // Get BullMQ queue for cleanup
+    contractBillingQueue = moduleFixture.get<Queue>(
+      getQueueToken(QUEUE_NAMES.CONTRACT_BILLING),
+    );
 
     // Create test account
     const testAccount = await prisma.account.create({
@@ -68,35 +77,53 @@ describe('Billing API (e2e)', () => {
   afterAll(async () => {
     // Clean up test data in correct order (respect foreign keys)
     try {
-      // 1. Delete all invoice items (cascade happens automatically)
-      // 2. Delete all invoices for test account
+      // 1. Delete all invoices for test account (invoice items cascade delete)
       if (testAccountId) {
         await prisma.invoice.deleteMany({
           where: {
-            accountId: testAccountId,
+            OR: [
+              { accountId: testAccountId },
+              { invoiceNumber: { contains: 'INV-' } },
+            ],
           },
         });
       }
 
-      // 3. Delete test contracts
-      await prisma.contract.deleteMany({
-        where: {
-          contractNumber: { contains: 'TEST-BILL' },
-        },
-      });
+      // 2. Delete test contract
+      if (testContractId) {
+        await prisma.contract.delete({
+          where: { id: testContractId },
+        }).catch(() => {
+          // Contract might already be deleted
+        });
+      }
 
-      // 4. Delete test accounts last
-      await prisma.account.deleteMany({
-        where: {
-          primaryContactEmail: 'test-billing@example.com',
-        },
-      });
+      // 3. Delete test account last
+      if (testAccountId) {
+        await prisma.account.delete({
+          where: { id: testAccountId },
+        }).catch(() => {
+          // Account might already be deleted
+        });
+      }
     } catch (error) {
       console.error('Cleanup error:', error);
     } finally {
-      // Close all connections
-      await prisma.$disconnect();
-      await app.close();
+      // Close all connections properly
+      try {
+        // Close BullMQ queue connections
+        if (contractBillingQueue) {
+          await contractBillingQueue.close();
+        }
+
+        // Disconnect Prisma
+        await prisma.$disconnect();
+
+        // Close NestJS app (this closes workers and other connections)
+        await app.close();
+      } catch (closeError) {
+        console.error('Error during connection closure:', closeError);
+      }
     }
   }, 30000); // 30 second timeout for cleanup
 
