@@ -110,10 +110,26 @@ export class QueryContractsDto extends BasePaginationDto {
   'contractValue[gt]'?: number;
 
   @ApiPropertyOptional({
+    description: 'Filter by contract value greater than or equal',
+    example: 10000,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  'contractValue[gte]'?: number;
+
+  @ApiPropertyOptional({
     description: 'Filter by contract value less than',
     example: 100000,
   })
   @IsOptional()
   @Type(() => Number)
   'contractValue[lt]'?: number;
+
+  @ApiPropertyOptional({
+    description: 'Filter by contract value less than or equal',
+    example: 100000,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  'contractValue[lte]'?: number;
 }

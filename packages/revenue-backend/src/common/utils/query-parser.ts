@@ -94,29 +94,65 @@ export function parseQueryFilters(query: Record<string, any>): QueryFilter[] {
 }
 
 /**
+ * Check if a value is a valid ISO date string
+ */
+function isISODateString(value: any): boolean {
+  if (typeof value !== 'string') return false;
+  const isoDateRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
+  if (!isoDateRegex.test(value)) return false;
+  const date = new Date(value);
+  return !isNaN(date.getTime());
+}
+
+/**
+ * Convert value to appropriate type for Prisma
+ * Automatically converts ISO date strings to Date objects for date comparisons
+ */
+function convertValueType(value: any, field: string, operator: QueryOperator): any {
+  // Convert ISO date strings to Date objects for date/time fields
+  if (isISODateString(value)) {
+    return new Date(value);
+  }
+
+  // Convert numeric strings to numbers for numeric comparison operators
+  if (
+    (operator === 'gt' || operator === 'gte' || operator === 'lt' || operator === 'lte') &&
+    typeof value === 'string' &&
+    !isNaN(Number(value))
+  ) {
+    return Number(value);
+  }
+
+  return value;
+}
+
+/**
  * Convert QueryFilter to Prisma where clause
  */
 export function filterToPrismaWhere(filter: QueryFilter): any {
   const { field, operator, value } = filter;
 
+  // Convert value to appropriate type
+  const convertedValue = convertValueType(value, field, operator);
+
   switch (operator) {
     case 'eq':
-      return { [field]: value };
+      return { [field]: convertedValue };
 
     case 'ne':
-      return { [field]: { not: value } };
+      return { [field]: { not: convertedValue } };
 
     case 'lt':
-      return { [field]: { lt: value } };
+      return { [field]: { lt: convertedValue } };
 
     case 'lte':
-      return { [field]: { lte: value } };
+      return { [field]: { lte: convertedValue } };
 
     case 'gt':
-      return { [field]: { gt: value } };
+      return { [field]: { gt: convertedValue } };
 
     case 'gte':
-      return { [field]: { gte: value } };
+      return { [field]: { gte: convertedValue } };
 
     case 'in':
       return { [field]: { in: Array.isArray(value) ? value : [value] } };
