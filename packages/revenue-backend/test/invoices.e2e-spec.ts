@@ -1,11 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus, INestApplication, ValidationPipe } from '@nestjs/common';
+import { HttpStatus, ValidationPipe } from '@nestjs/common';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 
 describe('InvoicesController (e2e)', () => {
-  let app: INestApplication;
+  let app: NestFastifyApplication;
   let prisma: PrismaService;
   let createdAccountId: string;
   let createdContractId: string;
@@ -16,7 +20,9 @@ describe('InvoicesController (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    );
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -24,7 +30,9 @@ describe('InvoicesController (e2e)', () => {
         transform: true,
       }),
     );
+
     await app.init();
+    await app.getHttpAdapter().getInstance().ready();
 
     prisma = app.get<PrismaService>(PrismaService);
 

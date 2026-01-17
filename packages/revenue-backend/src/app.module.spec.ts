@@ -8,14 +8,46 @@ import { ContractsService } from './modules/contracts/contracts.service';
 import { ProductsService } from './modules/products/products.service';
 import { InvoicesService } from './modules/invoices/invoices.service';
 import { HealthController } from './health/health.controller';
+import { getQueueToken } from '@nestjs/bullmq';
+import { QUEUE_NAMES } from './common/queues';
+import { Queue } from 'bullmq';
 
 describe('AppModule', () => {
   let module: TestingModule;
+  let contractBillingQueue: Queue;
+  let consoleLogSpy: jest.SpyInstance;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
+    // Suppress Prisma connection logs during tests
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
     module = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
+
+    // Get BullMQ queue for cleanup
+    contractBillingQueue = module.get<Queue>(
+      getQueueToken(QUEUE_NAMES.CONTRACT_BILLING),
+    );
+  });
+
+  afterAll(async () => {
+    // Close connections once after all tests complete
+    try {
+      if (contractBillingQueue) {
+        await contractBillingQueue.close();
+      }
+      if (module) {
+        await module.close();
+      }
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    } finally {
+      // Restore console.log
+      if (consoleLogSpy) {
+        consoleLogSpy.mockRestore();
+      }
+    }
   });
 
   it('should be defined', () => {

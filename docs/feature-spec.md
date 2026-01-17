@@ -21,54 +21,6 @@ scalability: hybrid (cluster + worker threads + queues)
 
 # B2B Enterprise Revenue Management Backend System
 
-## Problem Statement
-
-Currently, the Revenue app only displays mock invoice data with no backend system:
-- No real database for enterprise accounts, contracts, or products
-- No contract-based billing logic
-- No payment tracking or processing
-- No hierarchical account structures (parent companies with subsidiaries)
-- No purchase order management
-- No commitment-based billing (annual/multi-year contracts)
-- No approval workflows for enterprise deals
-- No billing automation or scheduled jobs
-
-This prevents the Revenue app from being a production-ready B2B Enterprise billing system.
-
-**Current State:**
-```javascript
-// Mock data in frontend
-const mockInvoices = [
-  { id: 'inv-001', amount: 5000, status: 'paid' }
-];
-```
-
-**Need:**
-A full-featured B2B Enterprise revenue management backend with:
-- Hierarchical account management (parent companies with subsidiaries)
-- Contract management with commitment-based pricing
-- Seat-based licensing and volume discounts
-- Purchase order workflows
-- Custom payment terms (Net 30/60/90)
-- Multi-year deals with fixed pricing
-- Credit limit management
-- Quarterly/Annual billing in advance
-- Enterprise reporting and analytics
-- SLA-based billing adjustments
-
-## Current State
-
-**Frontend:**
-- Revenue app with dashboard, invoice list, invoice detail views
-- Mock data via shared API layer
-- No real backend
-
-**No Backend:**
-- No database
-- No API server
-- No billing engine
-- No payment processing
-
 ## Proposed Solution
 
 Build a **B2B Enterprise Revenue Management Backend System** in phases, starting with core enterprise billing features and expanding incrementally. The system is designed for B2B SaaS companies selling to enterprise customers with complex contracts, hierarchical account structures, and custom payment terms.

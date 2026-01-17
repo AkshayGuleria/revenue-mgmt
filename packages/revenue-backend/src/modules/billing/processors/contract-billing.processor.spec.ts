@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { ContractBillingProcessor } from './contract-billing.processor';
 import { BillingEngineService } from '../services/billing-engine.service';
 import { Job } from 'bullmq';
@@ -13,6 +14,10 @@ describe('ContractBillingProcessor', () => {
   };
 
   beforeEach(async () => {
+    // Mock logger to suppress console output during tests
+    jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    jest.spyOn(Logger.prototype, 'error').mockImplementation();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContractBillingProcessor,
