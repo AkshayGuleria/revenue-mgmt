@@ -284,7 +284,7 @@ describe('QueryParser', () => {
       expect(result.where).toEqual({
         AND: [
           { status: 'active' },
-          { total: { gte: '100' } },
+          { total: { gte: 100 } }, // Numeric string auto-converted to number
         ],
       });
     });
@@ -312,6 +312,65 @@ describe('QueryParser', () => {
       const result = parseQuery({});
       expect(result.pagination).toEqual({ offset: 0, limit: 20 });
       expect(result.where).toEqual({});
+    });
+  });
+
+  describe('Type Conversion', () => {
+    it('should convert ISO date strings to Date objects for comparison operators', () => {
+      const filter: QueryFilter = { field: 'createdAt', operator: 'gte', value: '2024-01-01' };
+      const result = filterToPrismaWhere(filter);
+      expect(result.createdAt.gte).toBeInstanceOf(Date);
+      expect(result.createdAt.gte.toISOString()).toContain('2024-01-01');
+    });
+
+    it('should convert ISO datetime strings to Date objects', () => {
+      const filter: QueryFilter = { field: 'createdAt', operator: 'lte', value: '2024-12-31T23:59:59Z' };
+      const result = filterToPrismaWhere(filter);
+      expect(result.createdAt.lte).toBeInstanceOf(Date);
+    });
+
+    it('should convert numeric strings to numbers for comparison operators', () => {
+      const filters: QueryFilter[] = [
+        { field: 'total', operator: 'gt', value: '100' },
+        { field: 'total', operator: 'gte', value: '100' },
+        { field: 'total', operator: 'lt', value: '200' },
+        { field: 'total', operator: 'lte', value: '200' },
+      ];
+
+      filters.forEach(filter => {
+        const result = filterToPrismaWhere(filter);
+        const operatorValue = result.total[filter.operator];
+        expect(typeof operatorValue).toBe('number');
+        expect(operatorValue).toBeGreaterThan(0);
+      });
+    });
+
+    it('should not convert non-numeric strings', () => {
+      const filter: QueryFilter = { field: 'status', operator: 'eq', value: 'active' };
+      const result = filterToPrismaWhere(filter);
+      expect(result.status).toBe('active');
+      expect(typeof result.status).toBe('string');
+    });
+
+    it('should not convert dates for eq operator with date strings', () => {
+      const filter: QueryFilter = { field: 'date', operator: 'eq', value: '2024-01-01' };
+      const result = filterToPrismaWhere(filter);
+      // eq operator should convert dates too
+      expect(result.date).toBeInstanceOf(Date);
+    });
+
+    it('should handle date conversion in complete query', () => {
+      const query = {
+        'createdAt[gte]': '2024-01-01',
+        'createdAt[lte]': '2024-12-31',
+        'total[gte]': '1000',
+      };
+      const result = parseQuery(query);
+
+      expect(result.where.AND).toHaveLength(3);
+      expect(result.where.AND[0].createdAt.gte).toBeInstanceOf(Date);
+      expect(result.where.AND[1].createdAt.lte).toBeInstanceOf(Date);
+      expect(result.where.AND[2].total.gte).toBe(1000);
     });
   });
 });
