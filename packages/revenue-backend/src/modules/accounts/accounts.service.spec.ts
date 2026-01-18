@@ -552,4 +552,180 @@ describe('AccountsService', () => {
       ).rejects.toThrow('Cannot create circular account hierarchy');
     });
   });
+
+  describe('getHierarchy', () => {
+    it('should get full account hierarchy tree', async () => {
+      const rootAccount = {
+        id: 'root-id',
+        accountName: 'Root Account',
+        parentAccountId: null,
+        deletedAt: null,
+      };
+
+      const children = [
+        {
+          id: 'child-1',
+          accountName: 'Child 1',
+          parentAccountId: 'root-id',
+          _count: { children: 0, contracts: 2, invoices: 5 },
+        },
+        {
+          id: 'child-2',
+          accountName: 'Child 2',
+          parentAccountId: 'root-id',
+          _count: { children: 1, contracts: 1, invoices: 3 },
+        },
+      ];
+
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(rootAccount as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce(children as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([] as any); // child-1 has no children
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([] as any); // child-2 has no children
+
+      const result = await service.getHierarchy('root-id');
+
+      expect(result.data).toBeDefined();
+      expect(result.data.id).toBe('root-id');
+      expect(result.data.children).toHaveLength(2);
+      expect(result.paging.offset).toBeNull();
+    });
+
+    it('should throw NotFoundException if account not found', async () => {
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(null);
+
+      await expect(service.getHierarchy('invalid-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getChildren', () => {
+    it('should get direct children of an account', async () => {
+      const parent = { id: 'parent-id', deletedAt: null };
+      const children = [
+        {
+          id: 'child-1',
+          accountName: 'Child 1',
+          parentAccountId: 'parent-id',
+          _count: { children: 0, contracts: 2, invoices: 5 },
+        },
+        {
+          id: 'child-2',
+          accountName: 'Child 2',
+          parentAccountId: 'parent-id',
+          _count: { children: 1, contracts: 1, invoices: 3 },
+        },
+      ];
+
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(parent as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce(children as any);
+
+      const result = await service.getChildren('parent-id');
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].id).toBe('child-1');
+      expect(result.data[1].id).toBe('child-2');
+      expect(result.paging.total).toBe(2);
+    });
+
+    it('should return empty array if no children', async () => {
+      const parent = { id: 'parent-id', deletedAt: null };
+
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(parent as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]);
+
+      const result = await service.getChildren('parent-id');
+
+      expect(result.data).toHaveLength(0);
+      expect(result.paging.total).toBe(0);
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(null);
+
+      await expect(service.getChildren('invalid-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getAncestors', () => {
+    it('should get all ancestors of an account', async () => {
+      const account = { id: 'child-id', parentAccountId: 'parent-id', deletedAt: null };
+      const parent = {
+        id: 'parent-id',
+        accountName: 'Parent',
+        parentAccountId: 'grandparent-id',
+        deletedAt: null,
+      };
+      const grandparent = {
+        id: 'grandparent-id',
+        accountName: 'Grandparent',
+        parentAccountId: null,
+        deletedAt: null,
+      };
+
+      jest.spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(account as any)
+        .mockResolvedValueOnce(parent as any)
+        .mockResolvedValueOnce(grandparent as any);
+
+      const result = await service.getAncestors('child-id');
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].id).toBe('grandparent-id'); // Top-most ancestor first
+      expect(result.data[1].id).toBe('parent-id');
+      expect(result.paging.total).toBe(2);
+    });
+
+    it('should return empty array if no ancestors', async () => {
+      const account = { id: 'root-id', parentAccountId: null, deletedAt: null };
+
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(account as any);
+
+      const result = await service.getAncestors('root-id');
+
+      expect(result.data).toHaveLength(0);
+      expect(result.paging.total).toBe(0);
+    });
+  });
+
+  describe('getDescendants', () => {
+    it('should get all descendants as flat list', async () => {
+      const account = { id: 'root-id', deletedAt: null };
+      const children = [
+        { id: 'child-1', accountName: 'Child 1', parentAccountId: 'root-id' },
+        { id: 'child-2', accountName: 'Child 2', parentAccountId: 'root-id' },
+      ];
+      const grandchildren = [
+        { id: 'grandchild-1', accountName: 'Grandchild 1', parentAccountId: 'child-1' },
+      ];
+
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(account as any);
+      jest.spyOn(prisma.account, 'findMany')
+        .mockResolvedValueOnce(children as any)
+        .mockResolvedValueOnce(grandchildren as any)
+        .mockResolvedValueOnce([]) // child-1 has no more descendants
+        .mockResolvedValueOnce([]); // child-2 has no descendants
+
+      const result = await service.getDescendants('root-id');
+
+      expect(result.data).toHaveLength(3);
+      expect(result.data.some(d => d.id === 'child-1')).toBe(true);
+      expect(result.data.some(d => d.id === 'child-2')).toBe(true);
+      expect(result.data.some(d => d.id === 'grandchild-1')).toBe(true);
+    });
+
+    it('should return empty array if no descendants', async () => {
+      const account = { id: 'leaf-id', deletedAt: null };
+
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(account as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]);
+
+      const result = await service.getDescendants('leaf-id');
+
+      expect(result.data).toHaveLength(0);
+      expect(result.paging.total).toBe(0);
+    });
+  });
 });

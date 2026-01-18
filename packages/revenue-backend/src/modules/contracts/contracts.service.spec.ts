@@ -30,6 +30,12 @@ describe('ContractsService', () => {
     account: {
       findUnique: jest.fn(),
     },
+    contractShare: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      delete: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -446,6 +452,241 @@ describe('ContractsService', () => {
       await expect(service.remove('non-existent')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('shareContract', () => {
+    it('should share contract with another account', async () => {
+      const contract = {
+        id: 'contract-id',
+        accountId: 'owner-id',
+        account: { id: 'owner-id', accountName: 'Owner Corp' },
+      };
+      const targetAccount = {
+        id: 'target-id',
+        accountName: 'Target Corp',
+        parentAccountId: 'owner-id',
+      };
+      const share = {
+        id: 'share-id',
+        contractId: 'contract-id',
+        accountId: 'target-id',
+        notes: 'Shared for subsidiary',
+        account: { id: 'target-id', accountName: 'Target Corp' },
+        contract: { id: 'contract-id', contractNumber: 'CNT-001' },
+      };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(contract);
+      mockPrismaService.account.findUnique.mockResolvedValue(targetAccount);
+      mockPrismaService.contractShare.findUnique.mockResolvedValue(null);
+      mockPrismaService.contractShare.create.mockResolvedValue(share);
+
+      const result = await service.shareContract(
+        'contract-id',
+        'target-id',
+        'Shared for subsidiary',
+      );
+
+      expect(result.data).toEqual(share);
+      expect(mockPrismaService.contractShare.create).toHaveBeenCalledWith({
+        data: {
+          contractId: 'contract-id',
+          accountId: 'target-id',
+          notes: 'Shared for subsidiary',
+        },
+        include: {
+          account: { select: { id: true, accountName: true } },
+          contract: { select: { id: true, contractNumber: true } },
+        },
+      });
+    });
+
+    it('should throw NotFoundException if contract not found', async () => {
+      mockPrismaService.contract.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.shareContract('invalid-id', 'target-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if target account not found', async () => {
+      const contract = { id: 'contract-id', accountId: 'owner-id' };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(contract);
+      mockPrismaService.account.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.shareContract('contract-id', 'invalid-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if sharing with owner account', async () => {
+      const contract = {
+        id: 'contract-id',
+        accountId: 'owner-id',
+        account: { id: 'owner-id', accountName: 'Owner Corp' },
+      };
+      const targetAccount = { id: 'owner-id', accountName: 'Owner Corp' };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(contract);
+      mockPrismaService.account.findUnique.mockResolvedValue(targetAccount);
+
+      await expect(
+        service.shareContract('contract-id', 'owner-id'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw ConflictException if already shared', async () => {
+      const contract = {
+        id: 'contract-id',
+        accountId: 'owner-id',
+        account: { id: 'owner-id', accountName: 'Owner Corp' },
+      };
+      const targetAccount = { id: 'target-id', accountName: 'Target Corp' };
+      const existingShare = { id: 'share-id', contractId: 'contract-id' };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(contract);
+      mockPrismaService.account.findUnique.mockResolvedValue(targetAccount);
+      mockPrismaService.contractShare.findUnique.mockResolvedValue(
+        existingShare,
+      );
+
+      await expect(
+        service.shareContract('contract-id', 'target-id'),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('unshareContract', () => {
+    it('should unshare contract from account', async () => {
+      const contract = { id: 'contract-id' };
+      const share = { id: 'share-id', contractId: 'contract-id' };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(contract);
+      mockPrismaService.contractShare.findUnique.mockResolvedValue(share);
+      mockPrismaService.contractShare.delete.mockResolvedValue(share);
+
+      await service.unshareContract('contract-id', 'target-id');
+
+      expect(mockPrismaService.contractShare.delete).toHaveBeenCalledWith({
+        where: {
+          contractId_accountId: {
+            contractId: 'contract-id',
+            accountId: 'target-id',
+          },
+        },
+      });
+    });
+
+    it('should throw NotFoundException if contract not found', async () => {
+      mockPrismaService.contract.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.unshareContract('invalid-id', 'target-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if share not found', async () => {
+      const contract = { id: 'contract-id' };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(contract);
+      mockPrismaService.contractShare.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.unshareContract('contract-id', 'target-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getContractShares', () => {
+    it('should get all accounts a contract is shared with', async () => {
+      const contract = { id: 'contract-id' };
+      const shares = [
+        {
+          id: 'share-1',
+          contractId: 'contract-id',
+          accountId: 'account-1',
+          account: {
+            id: 'account-1',
+            accountName: 'Account 1',
+            accountType: 'enterprise',
+            status: 'active',
+          },
+        },
+        {
+          id: 'share-2',
+          contractId: 'contract-id',
+          accountId: 'account-2',
+          account: {
+            id: 'account-2',
+            accountName: 'Account 2',
+            accountType: 'enterprise',
+            status: 'active',
+          },
+        },
+      ];
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(contract);
+      mockPrismaService.contractShare.findMany.mockResolvedValue(shares);
+
+      const result = await service.getContractShares('contract-id');
+
+      expect(result.data).toEqual(shares);
+      expect(result.paging.total).toBe(2);
+    });
+
+    it('should throw NotFoundException if contract not found', async () => {
+      mockPrismaService.contract.findUnique.mockResolvedValue(null);
+
+      await expect(service.getContractShares('invalid-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getSharedContractsForAccount', () => {
+    it('should get all contracts shared with an account', async () => {
+      const account = { id: 'account-id' };
+      const shares = [
+        {
+          id: 'share-1',
+          contractId: 'contract-1',
+          accountId: 'account-id',
+          contract: {
+            id: 'contract-1',
+            contractNumber: 'CNT-001',
+            account: { id: 'owner-1', accountName: 'Owner 1' },
+          },
+        },
+        {
+          id: 'share-2',
+          contractId: 'contract-2',
+          accountId: 'account-id',
+          contract: {
+            id: 'contract-2',
+            contractNumber: 'CNT-002',
+            account: { id: 'owner-2', accountName: 'Owner 2' },
+          },
+        },
+      ];
+
+      mockPrismaService.account.findUnique.mockResolvedValue(account);
+      mockPrismaService.contractShare.findMany.mockResolvedValue(shares);
+
+      const result = await service.getSharedContractsForAccount('account-id');
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].id).toBe('contract-1');
+      expect(result.data[1].id).toBe('contract-2');
+      expect(result.paging.total).toBe(2);
+    });
+
+    it('should throw NotFoundException if account not found', async () => {
+      mockPrismaService.account.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getSharedContractsForAccount('invalid-id'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

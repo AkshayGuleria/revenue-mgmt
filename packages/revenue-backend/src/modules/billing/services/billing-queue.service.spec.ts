@@ -5,10 +5,21 @@ import { QUEUE_NAMES } from '../../../common/queues';
 
 describe('BillingQueueService', () => {
   let service: BillingQueueService;
-  let mockQueue: any;
+  let mockContractQueue: any;
+  let mockConsolidatedQueue: any;
 
   beforeEach(async () => {
-    mockQueue = {
+    mockContractQueue = {
+      add: jest.fn(),
+      getJob: jest.fn(),
+      getWaitingCount: jest.fn(),
+      getActiveCount: jest.fn(),
+      getCompletedCount: jest.fn(),
+      getFailedCount: jest.fn(),
+      getDelayedCount: jest.fn(),
+    };
+
+    mockConsolidatedQueue = {
       add: jest.fn(),
       getJob: jest.fn(),
       getWaitingCount: jest.fn(),
@@ -23,7 +34,11 @@ describe('BillingQueueService', () => {
         BillingQueueService,
         {
           provide: getQueueToken(QUEUE_NAMES.CONTRACT_BILLING),
-          useValue: mockQueue,
+          useValue: mockContractQueue,
+        },
+        {
+          provide: getQueueToken(QUEUE_NAMES.CONSOLIDATED_BILLING),
+          useValue: mockConsolidatedQueue,
         },
       ],
     }).compile();
@@ -48,12 +63,12 @@ describe('BillingQueueService', () => {
       };
 
       const mockJob = { id: 'job-123' };
-      mockQueue.add.mockResolvedValue(mockJob);
+      mockContractQueue.add.mockResolvedValue(mockJob);
 
       const result = await service.queueContractInvoiceGeneration(jobData);
 
       expect(result).toBe('job-123');
-      expect(mockQueue.add).toHaveBeenCalledWith(
+      expect(mockContractQueue.add).toHaveBeenCalledWith(
         'generate-contract-invoice',
         jobData,
         {
@@ -69,12 +84,12 @@ describe('BillingQueueService', () => {
       };
 
       const mockJob = { id: 'job-456' };
-      mockQueue.add.mockResolvedValue(mockJob);
+      mockContractQueue.add.mockResolvedValue(mockJob);
 
       const result = await service.queueContractInvoiceGeneration(jobData);
 
       expect(result).toBe('job-456');
-      expect(mockQueue.add).toHaveBeenCalledWith(
+      expect(mockContractQueue.add).toHaveBeenCalledWith(
         'generate-contract-invoice',
         jobData,
         expect.any(Object),
@@ -90,12 +105,12 @@ describe('BillingQueueService', () => {
       };
 
       const mockJob = { id: 'batch-job-123' };
-      mockQueue.add.mockResolvedValue(mockJob);
+      mockContractQueue.add.mockResolvedValue(mockJob);
 
       const result = await service.queueBatchContractBilling(jobData);
 
       expect(result).toBe('batch-job-123');
-      expect(mockQueue.add).toHaveBeenCalledWith(
+      expect(mockContractQueue.add).toHaveBeenCalledWith(
         'batch-contract-billing',
         jobData,
         {
@@ -112,7 +127,7 @@ describe('BillingQueueService', () => {
       };
 
       const mockJob = { id: 'batch-job-456' };
-      mockQueue.add.mockResolvedValue(mockJob);
+      mockContractQueue.add.mockResolvedValue(mockJob);
 
       const result = await service.queueBatchContractBilling(jobData);
 
@@ -126,7 +141,7 @@ describe('BillingQueueService', () => {
       };
 
       const mockJob = { id: 'batch-job-789' };
-      mockQueue.add.mockResolvedValue(mockJob);
+      mockContractQueue.add.mockResolvedValue(mockJob);
 
       const result = await service.queueBatchContractBilling(jobData);
 
@@ -136,12 +151,12 @@ describe('BillingQueueService', () => {
 
   describe('getJobStatus', () => {
     it('should return null if job not found', async () => {
-      mockQueue.getJob.mockResolvedValue(null);
+      mockContractQueue.getJob.mockResolvedValue(null);
 
       const result = await service.getJobStatus('nonexistent-job');
 
       expect(result).toBeNull();
-      expect(mockQueue.getJob).toHaveBeenCalledWith('nonexistent-job');
+      expect(mockContractQueue.getJob).toHaveBeenCalledWith('nonexistent-job');
     });
 
     it('should return job status for waiting job', async () => {
@@ -158,7 +173,7 @@ describe('BillingQueueService', () => {
         finishedOn: null,
       };
 
-      mockQueue.getJob.mockResolvedValue(mockJob);
+      mockContractQueue.getJob.mockResolvedValue(mockJob);
 
       const result = await service.getJobStatus('job-123');
 
@@ -193,7 +208,7 @@ describe('BillingQueueService', () => {
         finishedOn: 1737154405000,
       };
 
-      mockQueue.getJob.mockResolvedValue(mockJob);
+      mockContractQueue.getJob.mockResolvedValue(mockJob);
 
       const result = await service.getJobStatus('job-123');
 
@@ -228,7 +243,7 @@ describe('BillingQueueService', () => {
         finishedOn: 1737154410000,
       };
 
-      mockQueue.getJob.mockResolvedValue(mockJob);
+      mockContractQueue.getJob.mockResolvedValue(mockJob);
 
       const result = await service.getJobStatus('job-123');
 
@@ -251,7 +266,7 @@ describe('BillingQueueService', () => {
         finishedOn: null,
       };
 
-      mockQueue.getJob.mockResolvedValue(mockJob);
+      mockContractQueue.getJob.mockResolvedValue(mockJob);
 
       const result = await service.getJobStatus('job-123');
 
@@ -263,11 +278,11 @@ describe('BillingQueueService', () => {
 
   describe('getQueueStats', () => {
     it('should return queue statistics', async () => {
-      mockQueue.getWaitingCount.mockResolvedValue(5);
-      mockQueue.getActiveCount.mockResolvedValue(2);
-      mockQueue.getCompletedCount.mockResolvedValue(100);
-      mockQueue.getFailedCount.mockResolvedValue(3);
-      mockQueue.getDelayedCount.mockResolvedValue(1);
+      mockContractQueue.getWaitingCount.mockResolvedValue(5);
+      mockContractQueue.getActiveCount.mockResolvedValue(2);
+      mockContractQueue.getCompletedCount.mockResolvedValue(100);
+      mockContractQueue.getFailedCount.mockResolvedValue(3);
+      mockContractQueue.getDelayedCount.mockResolvedValue(1);
 
       const result = await service.getQueueStats();
 
@@ -283,11 +298,11 @@ describe('BillingQueueService', () => {
     });
 
     it('should return empty queue statistics', async () => {
-      mockQueue.getWaitingCount.mockResolvedValue(0);
-      mockQueue.getActiveCount.mockResolvedValue(0);
-      mockQueue.getCompletedCount.mockResolvedValue(0);
-      mockQueue.getFailedCount.mockResolvedValue(0);
-      mockQueue.getDelayedCount.mockResolvedValue(0);
+      mockContractQueue.getWaitingCount.mockResolvedValue(0);
+      mockContractQueue.getActiveCount.mockResolvedValue(0);
+      mockContractQueue.getCompletedCount.mockResolvedValue(0);
+      mockContractQueue.getFailedCount.mockResolvedValue(0);
+      mockContractQueue.getDelayedCount.mockResolvedValue(0);
 
       const result = await service.getQueueStats();
 
@@ -303,11 +318,11 @@ describe('BillingQueueService', () => {
     });
 
     it('should handle large numbers correctly', async () => {
-      mockQueue.getWaitingCount.mockResolvedValue(1000);
-      mockQueue.getActiveCount.mockResolvedValue(50);
-      mockQueue.getCompletedCount.mockResolvedValue(50000);
-      mockQueue.getFailedCount.mockResolvedValue(100);
-      mockQueue.getDelayedCount.mockResolvedValue(25);
+      mockContractQueue.getWaitingCount.mockResolvedValue(1000);
+      mockContractQueue.getActiveCount.mockResolvedValue(50);
+      mockContractQueue.getCompletedCount.mockResolvedValue(50000);
+      mockContractQueue.getFailedCount.mockResolvedValue(100);
+      mockContractQueue.getDelayedCount.mockResolvedValue(25);
 
       const result = await service.getQueueStats();
 

@@ -10,7 +10,12 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BillingEngineService } from './services/billing-engine.service';
 import { BillingQueueService } from './services/billing-queue.service';
-import { GenerateInvoiceDto, BatchGenerateInvoicesDto } from './dto/generate-invoice.dto';
+import { ConsolidatedBillingService } from './services/consolidated-billing.service';
+import {
+  GenerateInvoiceDto,
+  BatchGenerateInvoicesDto,
+  GenerateConsolidatedInvoiceDto,
+} from './dto/generate-invoice.dto';
 
 @ApiTags('Billing')
 @Controller('billing')
@@ -18,6 +23,7 @@ export class BillingController {
   constructor(
     private readonly billingEngine: BillingEngineService,
     private readonly billingQueue: BillingQueueService,
+    private readonly consolidatedBilling: ConsolidatedBillingService,
   ) {}
 
   @Post('generate')
@@ -183,6 +189,113 @@ export class BillingController {
   })
   async getQueueStats() {
     const stats = await this.billingQueue.getQueueStats();
+
+    return {
+      data: stats,
+      paging: {
+        offset: null,
+        limit: null,
+        total: null,
+        totalPages: null,
+        hasNext: null,
+        hasPrev: null,
+      },
+    };
+  }
+
+  @Post('consolidated')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Generate consolidated invoice (synchronous)',
+    description:
+      'Generates a consolidated invoice for a parent account and all its subsidiaries immediately. ' +
+      'Includes all active contracts across the account hierarchy. For background processing, use /billing/consolidated/queue endpoint.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Consolidated invoice generated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data or no billable items found',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Parent account not found',
+  })
+  async generateConsolidatedInvoice(
+    @Body() dto: GenerateConsolidatedInvoiceDto,
+  ) {
+    const result = await this.consolidatedBilling.generateConsolidatedInvoice({
+      parentAccountId: dto.parentAccountId,
+      periodStart: new Date(dto.periodStart),
+      periodEnd: new Date(dto.periodEnd),
+      includeChildren: dto.includeChildren ?? true,
+    });
+
+    return {
+      data: result,
+      paging: {
+        offset: null,
+        limit: null,
+        total: null,
+        totalPages: null,
+        hasNext: null,
+        hasPrev: null,
+      },
+    };
+  }
+
+  @Post('consolidated/queue')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary: 'Queue consolidated invoice generation (asynchronous)',
+    description:
+      'Queues a consolidated invoice generation job for background processing. ' +
+      'Returns job ID for status tracking.',
+  })
+  @ApiResponse({
+    status: 202,
+    description: 'Consolidated invoice generation job queued',
+  })
+  async queueConsolidatedInvoiceGeneration(
+    @Body() dto: GenerateConsolidatedInvoiceDto,
+  ) {
+    const jobId = await this.billingQueue.queueConsolidatedInvoiceGeneration({
+      parentAccountId: dto.parentAccountId,
+      periodStart: dto.periodStart,
+      periodEnd: dto.periodEnd,
+      includeChildren: dto.includeChildren ?? true,
+    });
+
+    return {
+      data: {
+        jobId,
+        status: 'queued',
+        message: 'Consolidated invoice generation job queued successfully',
+      },
+      paging: {
+        offset: null,
+        limit: null,
+        total: null,
+        totalPages: null,
+        hasNext: null,
+        hasPrev: null,
+      },
+    };
+  }
+
+  @Get('consolidated/queue/stats')
+  @ApiOperation({
+    summary: 'Get consolidated billing queue statistics',
+    description: 'Get current statistics for the consolidated billing queue',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Queue statistics retrieved',
+  })
+  async getConsolidatedQueueStats() {
+    const stats = await this.billingQueue.getConsolidatedQueueStats();
 
     return {
       data: stats,

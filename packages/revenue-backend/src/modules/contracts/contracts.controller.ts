@@ -17,7 +17,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { ContractsService } from './contracts.service';
-import { CreateContractDto, UpdateContractDto, QueryContractsDto } from './dto';
+import { CreateContractDto, UpdateContractDto, QueryContractsDto, ShareContractDto } from './dto';
 
 @ApiTags('Contracts')
 @Controller('api/contracts')
@@ -244,5 +244,174 @@ export class ContractsController {
   })
   async remove(@Param('id') id: string) {
     await this.contractsService.remove(id);
+  }
+
+  @Post(':id/shares')
+  @ApiOperation({
+    summary: 'Share contract with another account',
+    description:
+      'Share a contract with a subsidiary account. The shared account can use this contract for billing. ' +
+      'Returns share details with empty paging object.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Contract UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Contract successfully shared',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'object' },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'null' },
+            limit: { type: 'null' },
+            total: { type: 'null' },
+            totalPages: { type: 'null' },
+            hasNext: { type: 'null' },
+            hasPrev: { type: 'null' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or cannot share with owner account',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Contract or account not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Contract is already shared with this account',
+  })
+  shareContract(@Param('id') id: string, @Body() dto: ShareContractDto) {
+    return this.contractsService.shareContract(id, dto.accountId, dto.notes);
+  }
+
+  @Delete(':id/shares/:accountId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Unshare contract from account',
+    description:
+      'Remove contract share from a subsidiary account. Returns 204 No Content on success.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Contract UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiParam({
+    name: 'accountId',
+    description: 'Account UUID to unshare from',
+    example: '123e4567-e89b-12d3-a456-426614174001',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Contract successfully unshared',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Contract or share not found',
+  })
+  async unshareContract(
+    @Param('id') id: string,
+    @Param('accountId') accountId: string,
+  ) {
+    await this.contractsService.unshareContract(id, accountId);
+  }
+
+  @Get(':id/shares')
+  @ApiOperation({
+    summary: 'Get all accounts a contract is shared with',
+    description:
+      'Retrieve list of all accounts this contract has been shared with. ' +
+      'Returns list with count metadata.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Contract UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of shared accounts retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'number', example: 0 },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            totalPages: { type: 'number', example: 1 },
+            hasNext: { type: 'boolean', example: false },
+            hasPrev: { type: 'boolean', example: false },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Contract not found',
+  })
+  getContractShares(@Param('id') id: string) {
+    return this.contractsService.getContractShares(id);
+  }
+
+  @Get('shared/:accountId')
+  @ApiOperation({
+    summary: 'Get all contracts shared with an account',
+    description:
+      'Retrieve list of all contracts shared with a specific account. ' +
+      'Returns list with count metadata.',
+  })
+  @ApiParam({
+    name: 'accountId',
+    description: 'Account UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of shared contracts retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'number', example: 0 },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            totalPages: { type: 'number', example: 1 },
+            hasNext: { type: 'boolean', example: false },
+            hasPrev: { type: 'boolean', example: false },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+  })
+  getSharedContractsForAccount(@Param('accountId') accountId: string) {
+    return this.contractsService.getSharedContractsForAccount(accountId);
   }
 }

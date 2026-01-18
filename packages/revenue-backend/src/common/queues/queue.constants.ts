@@ -1,8 +1,9 @@
 /**
- * Queue names for Phase 2: Contract-Based Billing
+ * Queue names for Phase 2-3: Contract-Based Billing & Hierarchical Accounts
  */
 export const QUEUE_NAMES = {
   CONTRACT_BILLING: 'contract-billing',
+  CONSOLIDATED_BILLING: 'consolidated-billing',
   EMAIL: 'email',
   PDF_GENERATION: 'pdf-generation',
   TAX_CALCULATION: 'tax-calculation',
@@ -18,6 +19,10 @@ export const JOB_TYPES = {
   // Contract Billing Queue
   GENERATE_CONTRACT_INVOICE: 'generate-contract-invoice',
   BATCH_CONTRACT_BILLING: 'batch-contract-billing',
+
+  // Consolidated Billing Queue (Phase 3)
+  GENERATE_CONSOLIDATED_INVOICE: 'generate-consolidated-invoice',
+  BATCH_CONSOLIDATED_BILLING: 'batch-consolidated-billing',
 
   // Email Queue
   SEND_INVOICE_EMAIL: 'send-invoice-email',

@@ -49,10 +49,11 @@ model Account {
   deletedAt             DateTime? @map("deleted_at")
 
   // Relations
-  parent                Account?  @relation("AccountHierarchy", fields: [parentAccountId], references: [id])
-  children              Account[] @relation("AccountHierarchy")
+  parent                Account?         @relation("AccountHierarchy", fields: [parentAccountId], references: [id])
+  children              Account[]        @relation("AccountHierarchy")
   contracts             Contract[]
   invoices              Invoice[]
+  sharedContracts       ContractShare[]  @relation("SharedContracts")
 
   @@index([parentAccountId])
   @@index([status])
@@ -94,13 +95,34 @@ model Contract {
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  account             Account   @relation(fields: [accountId], references: [id])
+  account             Account          @relation(fields: [accountId], references: [id])
   invoices            Invoice[]
+  shares              ContractShare[]
 
   @@index([accountId])
   @@index([status])
   @@index([endDate])
   @@map("contracts")
+}
+
+// Phase 3: Shared Contracts - Allows contracts to be shared with subsidiary accounts
+model ContractShare {
+  id          String   @id @default(uuid())
+  contractId  String   @map("contract_id")
+  accountId   String   @map("account_id")
+
+  // Metadata
+  createdAt   DateTime @default(now()) @map("created_at")
+  notes       String?  // Optional notes about why this contract is shared
+
+  // Relations
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  account     Account  @relation("SharedContracts", fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, accountId])
+  @@index([contractId])
+  @@index([accountId])
+  @@map("contract_shares")
 }
 
 model Product {

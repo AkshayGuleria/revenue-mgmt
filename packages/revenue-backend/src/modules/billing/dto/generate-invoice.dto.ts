@@ -1,4 +1,4 @@
-import { IsUUID, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { IsUUID, IsOptional, IsDateString, IsEnum, IsBoolean } from 'class-validator';
 
 export enum BillingPeriod {
   MONTHLY = 'monthly',
@@ -31,4 +31,19 @@ export class BatchGenerateInvoicesDto {
   @IsOptional()
   @IsEnum(BillingPeriod)
   billingPeriod?: BillingPeriod;
+}
+
+export class GenerateConsolidatedInvoiceDto {
+  @IsUUID()
+  parentAccountId: string;
+
+  @IsDateString()
+  periodStart: string;
+
+  @IsDateString()
+  periodEnd: string;
+
+  @IsOptional()
+  @IsBoolean()
+  includeChildren?: boolean;
 }

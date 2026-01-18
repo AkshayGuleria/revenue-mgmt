@@ -236,4 +236,204 @@ export class AccountsController {
   async remove(@Param('id') id: string) {
     await this.accountsService.remove(id);
   }
+
+  @Get(':id/hierarchy')
+  @ApiOperation({
+    summary: 'Get account hierarchy tree',
+    description:
+      'Retrieve full account hierarchy tree including all descendants (children, grandchildren, etc.) ' +
+      'up to 5 levels deep. Returns hierarchical structure with nested children. ' +
+      'Returns single resource with empty paging object.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Root account UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Hierarchy tree retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            accountName: { type: 'string' },
+            depth: { type: 'number', example: 0 },
+            children: {
+              type: 'array',
+              items: { type: 'object' },
+            },
+          },
+        },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'null' },
+            limit: { type: 'null' },
+            total: { type: 'null' },
+            totalPages: { type: 'null' },
+            hasNext: { type: 'null' },
+            hasPrev: { type: 'null' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+  })
+  getHierarchy(@Param('id') id: string) {
+    return this.accountsService.getHierarchy(id);
+  }
+
+  @Get(':id/children')
+  @ApiOperation({
+    summary: 'Get direct children of account',
+    description:
+      'Retrieve all direct child accounts (one level below) of the specified parent account. ' +
+      'Returns list with count metadata. Paging object includes only total count.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Parent account UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Children list retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'number', example: 0 },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            totalPages: { type: 'number', example: 1 },
+            hasNext: { type: 'boolean', example: false },
+            hasPrev: { type: 'boolean', example: false },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+  })
+  getChildren(@Param('id') id: string) {
+    return this.accountsService.getChildren(id);
+  }
+
+  @Get(':id/ancestors')
+  @ApiOperation({
+    summary: 'Get account ancestors',
+    description:
+      'Retrieve all ancestor accounts (parent, grandparent, etc.) up the hierarchy chain ' +
+      'up to 5 levels. Returns flat list ordered from root (top) to immediate parent (bottom). ' +
+      'Returns list with count metadata.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Account UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ancestors list retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              accountName: { type: 'string' },
+              depth: { type: 'number', example: 1 },
+            },
+          },
+        },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'number', example: 0 },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            totalPages: { type: 'number', example: 1 },
+            hasNext: { type: 'boolean', example: false },
+            hasPrev: { type: 'boolean', example: false },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+  })
+  getAncestors(@Param('id') id: string) {
+    return this.accountsService.getAncestors(id);
+  }
+
+  @Get(':id/descendants')
+  @ApiOperation({
+    summary: 'Get all descendants of account',
+    description:
+      'Retrieve all descendant accounts (children, grandchildren, etc.) as a flat list ' +
+      'up to 5 levels deep. Ordered by depth and name. Returns list with count metadata.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Root account UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Descendants list retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              accountName: { type: 'string' },
+              depth: { type: 'number', example: 1 },
+            },
+          },
+        },
+        paging: {
+          type: 'object',
+          properties: {
+            offset: { type: 'number', example: 0 },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            totalPages: { type: 'number', example: 1 },
+            hasNext: { type: 'boolean', example: false },
+            hasPrev: { type: 'boolean', example: false },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Account not found',
+  })
+  getDescendants(@Param('id') id: string) {
+    return this.accountsService.getDescendants(id);
+  }
 }

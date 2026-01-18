@@ -207,4 +207,205 @@ export class ContractsService {
       where: { id },
     });
   }
+
+  /**
+   * Share a contract with another account (subsidiary)
+   * Phase 3: Shared Contracts
+   */
+  async shareContract(
+    contractId: string,
+    accountId: string,
+    notes?: string,
+  ): Promise<ApiResponse<any>> {
+    // Validate contract exists
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { account: { select: { id: true, accountName: true } } },
+    });
+
+    if (!contract) {
+      throw new NotFoundException(`Contract with ID ${contractId} not found`);
+    }
+
+    // Validate target account exists
+    const targetAccount = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: { id: true, accountName: true, parentAccountId: true },
+    });
+
+    if (!targetAccount) {
+      throw new NotFoundException(`Account with ID ${accountId} not found`);
+    }
+
+    // Prevent sharing contract with its own owner
+    if (contract.accountId === accountId) {
+      throw new BadRequestException(
+        'Cannot share contract with its owner account',
+      );
+    }
+
+    // Check if already shared
+    const existingShare = await this.prisma.contractShare.findUnique({
+      where: {
+        contractId_accountId: {
+          contractId,
+          accountId,
+        },
+      },
+    });
+
+    if (existingShare) {
+      throw new ConflictException(
+        `Contract is already shared with account ${accountId}`,
+      );
+    }
+
+    // Create share
+    const share = await this.prisma.contractShare.create({
+      data: {
+        contractId,
+        accountId,
+        notes,
+      },
+      include: {
+        account: {
+          select: {
+            id: true,
+            accountName: true,
+          },
+        },
+        contract: {
+          select: {
+            id: true,
+            contractNumber: true,
+          },
+        },
+      },
+    });
+
+    return buildSingleResponse(share);
+  }
+
+  /**
+   * Unshare a contract from an account
+   */
+  async unshareContract(
+    contractId: string,
+    accountId: string,
+  ): Promise<void> {
+    // Validate contract exists
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException(`Contract with ID ${contractId} not found`);
+    }
+
+    // Find share
+    const share = await this.prisma.contractShare.findUnique({
+      where: {
+        contractId_accountId: {
+          contractId,
+          accountId,
+        },
+      },
+    });
+
+    if (!share) {
+      throw new NotFoundException(
+        `Contract is not shared with account ${accountId}`,
+      );
+    }
+
+    // Delete share
+    await this.prisma.contractShare.delete({
+      where: {
+        contractId_accountId: {
+          contractId,
+          accountId,
+        },
+      },
+    });
+  }
+
+  /**
+   * Get all accounts a contract is shared with
+   */
+  async getContractShares(contractId: string): Promise<ApiResponse<any>> {
+    // Validate contract exists
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException(`Contract with ID ${contractId} not found`);
+    }
+
+    const shares = await this.prisma.contractShare.findMany({
+      where: { contractId },
+      include: {
+        account: {
+          select: {
+            id: true,
+            accountName: true,
+            accountType: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return buildPaginatedListResponse(
+      shares,
+      0,
+      shares.length,
+      shares.length,
+    );
+  }
+
+  /**
+   * Get all contracts shared with a specific account
+   */
+  async getSharedContractsForAccount(
+    accountId: string,
+  ): Promise<ApiResponse<any>> {
+    // Validate account exists
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account) {
+      throw new NotFoundException(`Account with ID ${accountId} not found`);
+    }
+
+    const shares = await this.prisma.contractShare.findMany({
+      where: { accountId },
+      include: {
+        contract: {
+          include: {
+            account: {
+              select: {
+                id: true,
+                accountName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return buildPaginatedListResponse(
+      shares.map((s) => s.contract),
+      0,
+      shares.length,
+      shares.length,
+    );
+  }
 }

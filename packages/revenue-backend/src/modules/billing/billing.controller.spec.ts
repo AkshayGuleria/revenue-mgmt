@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BillingController } from './billing.controller';
 import { BillingEngineService } from './services/billing-engine.service';
 import { BillingQueueService } from './services/billing-queue.service';
+import { ConsolidatedBillingService } from './services/consolidated-billing.service';
 import { BillingPeriod } from './dto/generate-invoice.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -9,6 +10,7 @@ describe('BillingController', () => {
   let controller: BillingController;
   let billingEngine: BillingEngineService;
   let billingQueue: BillingQueueService;
+  let consolidatedBilling: ConsolidatedBillingService;
 
   const mockBillingEngine = {
     generateInvoiceFromContract: jest.fn(),
@@ -17,8 +19,14 @@ describe('BillingController', () => {
   const mockBillingQueue = {
     queueContractInvoiceGeneration: jest.fn(),
     queueBatchContractBilling: jest.fn(),
+    queueConsolidatedInvoiceGeneration: jest.fn(),
     getJobStatus: jest.fn(),
     getQueueStats: jest.fn(),
+    getConsolidatedQueueStats: jest.fn(),
+  };
+
+  const mockConsolidatedBilling = {
+    generateConsolidatedInvoice: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -33,12 +41,17 @@ describe('BillingController', () => {
           provide: BillingQueueService,
           useValue: mockBillingQueue,
         },
+        {
+          provide: ConsolidatedBillingService,
+          useValue: mockConsolidatedBilling,
+        },
       ],
     }).compile();
 
     controller = module.get<BillingController>(BillingController);
     billingEngine = module.get<BillingEngineService>(BillingEngineService);
     billingQueue = module.get<BillingQueueService>(BillingQueueService);
+    consolidatedBilling = module.get<ConsolidatedBillingService>(ConsolidatedBillingService);
   });
 
   afterEach(() => {

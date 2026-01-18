@@ -216,6 +216,227 @@ export class AccountsService {
   }
 
   /**
+   * Get full account hierarchy tree (all descendants)
+   * Uses recursive traversal with max depth of 5 levels
+   */
+  async getHierarchy(id: string, maxDepth = 5): Promise<ApiResponse<any>> {
+    // Verify account exists
+    const rootAccount = await this.prisma.account.findUnique({
+      where: { id },
+      include: {
+        parent: {
+          select: {
+            id: true,
+            accountName: true,
+          },
+        },
+      },
+    });
+
+    if (!rootAccount || rootAccount.deletedAt) {
+      throw new NotFoundException(`Account with ID ${id} not found`);
+    }
+
+    // Build hierarchy tree recursively
+    const tree = await this.buildAccountTree(rootAccount, 0, maxDepth);
+
+    return buildSingleResponse(tree);
+  }
+
+  /**
+   * Get all direct children of an account
+   */
+  async getChildren(id: string): Promise<ApiResponse<any>> {
+    // Verify parent account exists
+    const parentAccount = await this.prisma.account.findUnique({
+      where: { id },
+    });
+
+    if (!parentAccount || parentAccount.deletedAt) {
+      throw new NotFoundException(`Account with ID ${id} not found`);
+    }
+
+    const children = await this.prisma.account.findMany({
+      where: {
+        parentAccountId: id,
+        deletedAt: null,
+      },
+      include: {
+        _count: {
+          select: {
+            children: true,
+            contracts: true,
+            invoices: true,
+          },
+        },
+      },
+      orderBy: { accountName: 'asc' },
+    });
+
+    return buildPaginatedListResponse(
+      children,
+      0,
+      children.length,
+      children.length,
+    );
+  }
+
+  /**
+   * Get all ancestors (parent, grandparent, etc.) of an account
+   */
+  async getAncestors(id: string): Promise<ApiResponse<any>> {
+    // Verify account exists
+    const account = await this.prisma.account.findUnique({
+      where: { id },
+    });
+
+    if (!account || account.deletedAt) {
+      throw new NotFoundException(`Account with ID ${id} not found`);
+    }
+
+    const ancestors = [];
+    let currentId = account.parentAccountId;
+    let depth = 0;
+    const maxDepth = 5;
+
+    // Traverse up the parent chain
+    while (currentId && depth < maxDepth) {
+      const parent = await this.prisma.account.findUnique({
+        where: { id: currentId },
+        select: {
+          id: true,
+          parentAccountId: true,
+          accountName: true,
+          accountType: true,
+          status: true,
+          primaryContactEmail: true,
+          deletedAt: true,
+        },
+      });
+
+      if (!parent || parent.deletedAt) {
+        break;
+      }
+
+      ancestors.push({ ...parent, depth: depth + 1 });
+      currentId = parent.parentAccountId;
+      depth++;
+    }
+
+    // Reverse to show from top (root) to bottom (immediate parent)
+    ancestors.reverse();
+
+    return buildPaginatedListResponse(
+      ancestors,
+      0,
+      ancestors.length,
+      ancestors.length,
+    );
+  }
+
+  /**
+   * Get all descendants (children, grandchildren, etc.) of an account
+   * Returns flat list of all accounts in the hierarchy
+   */
+  async getDescendants(id: string): Promise<ApiResponse<any>> {
+    // Verify account exists
+    const account = await this.prisma.account.findUnique({
+      where: { id },
+    });
+
+    if (!account || account.deletedAt) {
+      throw new NotFoundException(`Account with ID ${id} not found`);
+    }
+
+    const descendants = [];
+    await this.collectDescendants(id, descendants, 0, 5);
+
+    return buildPaginatedListResponse(
+      descendants,
+      0,
+      descendants.length,
+      descendants.length,
+    );
+  }
+
+  /**
+   * Recursively build account tree with children
+   */
+  private async buildAccountTree(
+    account: any,
+    currentDepth: number,
+    maxDepth: number,
+  ): Promise<any> {
+    if (currentDepth >= maxDepth) {
+      return { ...account, children: [] };
+    }
+
+    const children = await this.prisma.account.findMany({
+      where: {
+        parentAccountId: account.id,
+        deletedAt: null,
+      },
+      include: {
+        _count: {
+          select: {
+            children: true,
+            contracts: true,
+            invoices: true,
+          },
+        },
+      },
+      orderBy: { accountName: 'asc' },
+    });
+
+    const childrenWithDescendants = await Promise.all(
+      children.map((child) =>
+        this.buildAccountTree(child, currentDepth + 1, maxDepth),
+      ),
+    );
+
+    return {
+      ...account,
+      depth: currentDepth,
+      children: childrenWithDescendants,
+    };
+  }
+
+  /**
+   * Recursively collect all descendants
+   */
+  private async collectDescendants(
+    parentId: string,
+    result: any[],
+    currentDepth: number,
+    maxDepth: number,
+  ): Promise<void> {
+    if (currentDepth >= maxDepth) {
+      return;
+    }
+
+    const children = await this.prisma.account.findMany({
+      where: {
+        parentAccountId: parentId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        parentAccountId: true,
+        accountName: true,
+        accountType: true,
+        status: true,
+        primaryContactEmail: true,
+      },
+      orderBy: { accountName: 'asc' },
+    });
+
+    for (const child of children) {
+      result.push({ ...child, depth: currentDepth + 1 });
+      await this.collectDescendants(child.id, result, currentDepth + 1, maxDepth);
+    }
+  }
+
+  /**
    * Check for circular hierarchy by traversing parent chain
    */
   private async checkCircularHierarchy(

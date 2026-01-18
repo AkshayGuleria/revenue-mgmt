@@ -4,16 +4,21 @@ import { BillingController } from './billing.controller';
 import { BillingEngineService } from './services/billing-engine.service';
 import { SeatCalculatorService } from './services/seat-calculator.service';
 import { BillingQueueService } from './services/billing-queue.service';
+import { ConsolidatedBillingService } from './services/consolidated-billing.service';
 import { ContractBillingProcessor } from './processors/contract-billing.processor';
+import { ConsolidatedBillingProcessor } from './processors/consolidated-billing.processor';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { QUEUE_NAMES } from '../../common/queues';
 
 @Module({
   imports: [
     PrismaModule,
-    // Register contract billing queue
+    // Register billing queues
     BullModule.registerQueue({
       name: QUEUE_NAMES.CONTRACT_BILLING,
+    }),
+    BullModule.registerQueue({
+      name: QUEUE_NAMES.CONSOLIDATED_BILLING,
     }),
   ],
   controllers: [BillingController],
@@ -21,8 +26,15 @@ import { QUEUE_NAMES } from '../../common/queues';
     BillingEngineService,
     SeatCalculatorService,
     BillingQueueService,
+    ConsolidatedBillingService,
     ContractBillingProcessor,
+    ConsolidatedBillingProcessor,
   ],
-  exports: [BillingEngineService, SeatCalculatorService, BillingQueueService],
+  exports: [
+    BillingEngineService,
+    SeatCalculatorService,
+    BillingQueueService,
+    ConsolidatedBillingService,
+  ],
 })
 export class BillingModule {}

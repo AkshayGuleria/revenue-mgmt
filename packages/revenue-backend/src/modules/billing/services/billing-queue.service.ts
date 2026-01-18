@@ -6,6 +6,7 @@ import {
   GenerateContractInvoiceJobData,
   BatchContractBillingJobData,
 } from '../processors/contract-billing.processor';
+import { ConsolidatedBillingJobData } from '../processors/consolidated-billing.processor';
 
 @Injectable()
 export class BillingQueueService {
@@ -14,6 +15,8 @@ export class BillingQueueService {
   constructor(
     @InjectQueue(QUEUE_NAMES.CONTRACT_BILLING)
     private contractBillingQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.CONSOLIDATED_BILLING)
+    private consolidatedBillingQueue: Queue,
   ) {}
 
   /**
@@ -61,10 +64,38 @@ export class BillingQueueService {
   }
 
   /**
-   * Get job status
+   * Queue a consolidated invoice generation job
+   */
+  async queueConsolidatedInvoiceGeneration(
+    data: ConsolidatedBillingJobData,
+  ): Promise<string> {
+    const job = await this.consolidatedBillingQueue.add(
+      JOB_TYPES.GENERATE_CONSOLIDATED_INVOICE,
+      data,
+      {
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+
+    this.logger.log(
+      `Queued consolidated invoice generation job ${job.id} for parent account ${data.parentAccountId}`,
+    );
+
+    return job.id!;
+  }
+
+  /**
+   * Get job status (checks both queues)
    */
   async getJobStatus(jobId: string) {
-    const job = await this.contractBillingQueue.getJob(jobId);
+    // Try contract billing queue first
+    let job = await this.contractBillingQueue.getJob(jobId);
+
+    // If not found, try consolidated billing queue
+    if (!job) {
+      job = await this.consolidatedBillingQueue.getJob(jobId);
+    }
 
     if (!job) {
       return null;
@@ -103,6 +134,29 @@ export class BillingQueueService {
 
     return {
       queue: QUEUE_NAMES.CONTRACT_BILLING,
+      waiting,
+      active,
+      completed,
+      failed,
+      delayed,
+      total: waiting + active + completed + failed + delayed,
+    };
+  }
+
+  /**
+   * Get consolidated billing queue statistics
+   */
+  async getConsolidatedQueueStats() {
+    const [waiting, active, completed, failed, delayed] = await Promise.all([
+      this.consolidatedBillingQueue.getWaitingCount(),
+      this.consolidatedBillingQueue.getActiveCount(),
+      this.consolidatedBillingQueue.getCompletedCount(),
+      this.consolidatedBillingQueue.getFailedCount(),
+      this.consolidatedBillingQueue.getDelayedCount(),
+    ]);
+
+    return {
+      queue: QUEUE_NAMES.CONSOLIDATED_BILLING,
       waiting,
       active,
       completed,

@@ -19,8 +19,6 @@ phase5_status: planned (analytics, renewal tracking, SLA adjustments)
 scalability: hybrid (cluster + worker threads + queues)
 ---
 
-# B2B Enterprise Revenue Management Backend System
-
 ## Proposed Solution
 
 Build a **B2B Enterprise Revenue Management Backend System** in phases, starting with core enterprise billing features and expanding incrementally. The system is designed for B2B SaaS companies selling to enterprise customers with complex contracts, hierarchical account structures, and custom payment terms.
@@ -28,17 +26,20 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 ### Technology Stack
 
 **Backend Framework:** Express.js (Node.js)
+
 - Consistent with auth-server architecture
 - Team already familiar with Express
 - Excellent ecosystem for billing logic
 
 **Database:** PostgreSQL
+
 - Relational data (customers, products, invoices)
 - ACID compliance (critical for financial data)
 - JSON support for flexible schemas
 - Mature and battle-tested
 
 **Scalability & Performance:**
+
 - **PM2** - Process manager for clustering and monitoring
 - **Node.js Cluster** - Multi-process for I/O-bound API scaling
 - **Worker Threads** - Multi-threading for CPU-bound tasks (PDF, tax calc)
@@ -46,6 +47,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - **Redis** - Job queues, caching, session storage
 
 **Additional Services:**
+
 - Stripe/PayPal SDK for payment processing
 - pdfkit or puppeteer for PDF generation
 - Nodemailer for email notifications
@@ -217,6 +219,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 ### Phased Approach
 
 **Phase 1: Foundation** (Weeks 1-2)
+
 - Enterprise account CRUD with hierarchical support
 - Contract management (single and multi-year deals)
 - Product catalog with seat-based pricing
@@ -224,6 +227,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - Payment terms configuration (Net 30/60/90)
 
 **Phase 2: Contract-Based Billing** (Weeks 3-4)
+
 - Automated invoice generation from contracts
 - Seat-based billing (per user/license)
 - Quarterly/Annual billing in advance
@@ -232,6 +236,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - PDF invoice generation
 
 **Phase 3: Hierarchical Accounts** (Weeks 5-6)
+
 - Parent-child company relationships
 - Consolidated billing for subsidiaries
 - Roll-up reporting across account hierarchies
@@ -239,6 +244,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - Shared contracts across subsidiaries
 
 **Phase 4: Enterprise Operations** (Weeks 7-9)
+
 - Purchase order management and tracking
 - Credit limit and credit hold management
 - Approval workflows for large deals
@@ -247,6 +253,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - Tax calculation by jurisdiction
 
 **Phase 5: Analytics & Optimization** (Weeks 10-12)
+
 - Enterprise analytics dashboard (ARR, MRR, churn)
 - Contract renewal tracking and forecasting
 - SLA-based billing adjustments
@@ -258,6 +265,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 ## Acceptance Criteria
 
 ### Phase 1: Foundation (MUST HAVE)
+
 - [ ] PostgreSQL database setup with migrations
 - [ ] Enterprise account CRUD API with hierarchical ID support
 - [ ] Contract management API (create, read, update contracts)
@@ -273,6 +281,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - [ ] Revenue frontend migrated to real backend
 
 ### Phase 2: Contract-Based Billing & Scalability (SHOULD HAVE)
+
 - [ ] Automated invoice generation from active contracts
 - [ ] Seat-based billing calculation (per user/license)
 - [ ] Quarterly/Annual billing in advance support
@@ -294,6 +303,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
   - [ ] Database connection pooling (max 5 per process)
 
 ### Phase 3: Hierarchical Accounts (SHOULD HAVE)
+
 - [ ] Parent-child company relationship modeling
 - [ ] Account hierarchy API (create subsidiaries, link to parent)
 - [ ] Consolidated billing for account hierarchies
@@ -306,6 +316,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - [ ] Per-subsidiary invoice option
 
 ### Phase 4: Enterprise Operations (NICE TO HAVE)
+
 - [ ] Purchase order (PO) management system
 - [ ] PO number tracking on invoices
 - [ ] PO approval workflows (configurable approval chains)
@@ -321,6 +332,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 - [ ] Dunning workflows for overdue enterprise accounts
 
 ### Phase 5: Analytics & Optimization (NICE TO HAVE)
+
 - [ ] Enterprise analytics dashboard (ARR, MRR, bookings, churn)
 - [ ] Contract renewal tracking and alerts
 - [ ] Revenue forecasting based on pipeline and renewals
@@ -538,6 +550,7 @@ Build a **B2B Enterprise Revenue Management Backend System** in phases, starting
 ### Database Schema (Phase 1)
 
 **Enterprise Accounts (B2B Focus):**
+
 ```sql
 CREATE TABLE accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -584,6 +597,7 @@ CREATE INDEX idx_accounts_type ON accounts(account_type);
 ```
 
 **Contracts (B2B Commitment-Based):**
+
 ```sql
 CREATE TABLE contracts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -625,6 +639,7 @@ CREATE INDEX idx_contracts_end_date ON contracts(end_date); -- For renewal track
 ```
 
 **Products (B2B Seat-Based Focus):**
+
 ```sql
 CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -663,6 +678,7 @@ CREATE INDEX idx_products_active ON products(active);
 ```
 
 **Invoices (B2B with Contract & PO Linking):**
+
 ```sql
 CREATE TABLE invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -715,6 +731,7 @@ CREATE INDEX idx_invoices_po ON invoices(purchase_order_number);
 ```
 
 **Invoice Items:**
+
 ```sql
 CREATE TABLE invoice_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -731,6 +748,7 @@ CREATE INDEX idx_invoice_items_invoice ON invoice_items(invoice_id);
 ```
 
 **Purchase Orders (Phase 4):**
+
 ```sql
 CREATE TABLE purchase_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -841,6 +859,7 @@ REDIS_URL=redis://localhost:6379
 ### API Examples
 
 **Create Enterprise Contract:**
+
 ```http
 POST /api/contracts
 Content-Type: application/json
@@ -865,6 +884,7 @@ Authorization: Bearer {sessionToken}
 ```
 
 **Response:**
+
 ```json
 {
   "id": "ctr-uuid-123",
@@ -886,6 +906,7 @@ Authorization: Bearer {sessionToken}
 ```
 
 **Generate Invoice from Contract:**
+
 ```http
 POST /api/billing/generate
 Content-Type: application/json
@@ -900,6 +921,7 @@ Authorization: Bearer {sessionToken}
 ```
 
 **Response:**
+
 ```json
 {
   "id": "inv-uuid-456",
@@ -942,6 +964,7 @@ Authorization: Bearer {sessionToken}
 ### Scalability Architecture Implementation
 
 **PM2 Ecosystem Configuration:**
+
 ```javascript
 // ecosystem.config.js (PM2 configuration)
 module.exports = {
@@ -1019,6 +1042,7 @@ module.exports = {
 ```
 
 **Queue Configuration:**
+
 ```javascript
 // src/config/queues.js
 import { Queue } from 'bullmq';
@@ -1076,6 +1100,7 @@ export const billingQueue = new Queue('billing', {
 ```
 
 **API Server with Queue Integration:**
+
 ```javascript
 // src/server.js
 import express from 'express';
@@ -1153,6 +1178,7 @@ app.listen(5177);
 ```
 
 **PDF Worker with Worker Threads:**
+
 ```javascript
 // src/workers/pdf-worker.js
 import { Worker as BullWorker } from 'bullmq';
@@ -1244,6 +1270,7 @@ process.on('SIGTERM', async () => {
 ```
 
 **Worker Thread (actual PDF generation):**
+
 ```javascript
 // src/threads/pdf-generator.js
 import { parentPort, workerData } from 'worker_threads';
@@ -1293,6 +1320,7 @@ generatePDF().catch(err => {
 ```
 
 **Database Connection Pooling:**
+
 ```javascript
 // src/config/database.js
 import pkg from 'pg';
@@ -1368,6 +1396,7 @@ export const pool = new Pool({
 ### Integration with Existing System
 
 **Auth Server Integration:**
+
 ```javascript
 // middleware/auth.js
 import axios from 'axios';
@@ -1397,6 +1426,7 @@ export async function validateSession(req, res, next) {
 ```
 
 **Revenue Frontend Migration:**
+
 ```javascript
 // packages/revenue-app/src/api/invoices.js (updated)
 
@@ -1478,6 +1508,7 @@ This specification is **B2B Enterprise-first**, designed for SaaS companies sell
 | Custom Fields | JSONB metadata flexibility | Phase 1 |
 
 **B2B Enterprise Advantages:**
+
 - ✅ **Contract-first approach** - Built around multi-year enterprise deals
 - ✅ **Hierarchical accounts** - Parent companies with multiple subsidiaries
 - ✅ **Seat-based licensing** - Standard B2B SaaS pricing model
@@ -1494,6 +1525,7 @@ This specification is **B2B Enterprise-first**, designed for SaaS companies sell
 After establishing the B2B Enterprise foundation, the system can be **extended to support B2C** use cases where events are billed as they occur:
 
 **Future B2C Extensions:**
+
 - Usage-based (metered) billing for API calls, storage, bandwidth
 - Event ingestion API for real-time usage tracking
 - Rating engine to convert usage to charges
@@ -1504,6 +1536,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - Trial periods and free tiers
 
 **Implementation Strategy:**
+
 1. **Phase 1-5:** Build robust B2B Enterprise billing foundation
 2. **Phase 6+ (Future):** Add B2C event tables (`usage_records`, `usage_events`)
 3. Add rating engine for usage-to-charge conversion
@@ -1511,6 +1544,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 5. Keep B2B and B2C models separate but share common infrastructure
 
 **Why B2B First?**
+
 - ✅ Higher average revenue per customer (ARPC)
 - ✅ More predictable revenue (annual contracts)
 - ✅ Simpler to implement (no real-time event processing)
@@ -1597,6 +1631,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 ## Testing Strategy
 
 **Phase 1:**
+
 - Unit tests for account and contract API endpoints
 - Integration tests with PostgreSQL
 - Contract validation testing (dates, commitment values)
@@ -1604,6 +1639,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - API contract testing
 
 **Phase 2:**
+
 - Contract-based invoice generation testing
 - Seat-based pricing calculation accuracy
 - Volume discount rule testing
@@ -1612,12 +1648,14 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - PDF generation with enterprise branding testing
 
 **Phase 3:**
+
 - Hierarchical account relationship testing
 - Consolidated billing logic testing
 - Roll-up reporting accuracy testing
 - Parent-child contract inheritance testing
 
 **Phase 4+:**
+
 - Purchase order workflow testing
 - Credit limit enforcement testing
 - Payment reconciliation accuracy
@@ -1628,6 +1666,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 ## Progress Log
 
 ### 2026-01-12 (Major Refactor - B2B Enterprise Focus + Architecture Audit)
+
 - **Completely rewrote specification to focus on B2B Enterprise billing**
 - Shifted from telecom/metered billing to contract-based B2B models
 - **Core Changes:**
@@ -1677,6 +1716,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - Reset all acceptance criteria checkboxes to planned state
 
 ### 2026-01-11 (Hybrid Scalability)
+
 - **Hybrid scalability architecture added** based on tommi's recommendation
 - Updated Phase 2 to include scalability implementation (21 new tasks)
 - Architecture: PM2 Cluster + Worker Threads + BullMQ Queues
@@ -1686,6 +1726,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - Tech stack updated: BullMQ, Worker Threads, connection pooling
 
 ### 2026-01-11 (Initial)
+
 - Initial spec created by tapsa
 - Assigned to billman (revenue domain) and habibi (database/infrastructure)
 - 5-phase approach designed based on jBilling reference
@@ -1706,6 +1747,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 ## Quick Reference
 
 **Phase Summary (B2B Enterprise Focus):**
+
 - **Phase 1** (2 weeks): Foundation - Enterprise accounts, contracts, seat-based pricing (30 tasks)
 - **Phase 2** (2 weeks): Contract Billing + Scalability - Automated billing, volume discounts, **Hybrid Architecture** (44 tasks)
 - **Phase 3** (2 weeks): Hierarchical Accounts - Parent-child, consolidated billing (21 tasks)
@@ -1716,6 +1758,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 **Total:** 141 subtasks across 12 weeks (3 months) for B2B Enterprise foundation
 
 **B2B Enterprise Features:**
+
 - 🏢 Hierarchical accounts (parent companies + subsidiaries)
 - 📄 Contract-based billing (multi-year commitments)
 - 👥 Seat-based licensing with volume discounts
@@ -1726,6 +1769,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - 💰 Custom payment terms (Net 30/60/90)
 
 **Tech Stack:**
+
 - **Backend:** Express.js (Node.js)
 - **Database:** PostgreSQL (with connection pooling)
 - **Scalability:** PM2 + Node.js Cluster + Worker Threads + BullMQ
@@ -1735,6 +1779,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - **PDF:** pdfkit with Worker Threads (enterprise-branded invoices)
 
 **Scalability Architecture (B2B Optimized):**
+
 - PM2 cluster mode (4 API processes for I/O-bound operations)
 - BullMQ job queues (Redis-backed) - 8 queues for different B2B workflows
 - Worker Threads for CPU tasks (PDF generation, tax calculations, consolidated billing)
@@ -1750,6 +1795,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 - Database optimizations (recursive CTEs, materialized views, hierarchical indices)
 
 **Performance Targets (B2B Enterprise Workload):**
+
 - **API throughput:** 200 req/sec (finance teams, complex queries with hierarchical joins)
 - **Contract billing:** 40 invoices/sec (seat calculations + volume discounts)
 - **Consolidated billing:** 15 consolidated invoices/sec (10 subsidiaries per parent)
@@ -1767,6 +1813,7 @@ After establishing the B2B Enterprise foundation, the system can be **extended t
 ## Sources
 
 Research based on B2B Enterprise SaaS billing best practices:
+
 - Stripe Billing for B2B Enterprise patterns
 - Zuora billing models (contract-based, seat licensing)
 - Salesforce CPQ (Configure-Price-Quote) workflows
@@ -1775,5 +1822,6 @@ Research based on B2B Enterprise SaaS billing best practices:
 - Industry standard B2B SaaS metrics (ARR, MRR, bookings)
 
 Previous research (telecom-focused):
+
 - [jBilling Reviews & Features](https://www.softwaresuggest.com/jbilling)
 - [Best Open-Source Billing Tools 2025](https://flexprice.io/blog/best-open-source-tools-subscription-billing)
