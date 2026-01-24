@@ -18,7 +18,7 @@ import {
 } from './dto/generate-invoice.dto';
 
 @ApiTags('Billing')
-@Controller('billing')
+@Controller('api/billing')
 export class BillingController {
   constructor(
     private readonly billingEngine: BillingEngineService,

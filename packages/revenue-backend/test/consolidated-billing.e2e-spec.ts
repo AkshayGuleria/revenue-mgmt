@@ -240,7 +240,7 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
 
     it('should generate consolidated invoice for parent and subsidiaries', async () => {
       const response = await request(app.getHttpServer())
-        .post('/billing/consolidated')
+        .post('/api/billing/consolidated')
         .send({
           parentAccountId: parentAccount.id,
           periodStart: '2026-01-01',
@@ -268,7 +268,7 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
 
     it('should generate invoice for parent only when includeChildren is false', async () => {
       const response = await request(app.getHttpServer())
-        .post('/billing/consolidated')
+        .post('/api/billing/consolidated')
         .send({
           parentAccountId: parentAccount.id,
           periodStart: '2026-01-01',
@@ -304,7 +304,7 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
 
       // Generate consolidated invoice
       const response = await request(app.getHttpServer())
-        .post('/billing/consolidated')
+        .post('/api/billing/consolidated')
         .send({
           parentAccountId: parentAccount.id,
           periodStart: '2026-01-01',
@@ -327,9 +327,9 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
 
     it('should throw error if parent account not found', async () => {
       await request(app.getHttpServer())
-        .post('/billing/consolidated')
+        .post('/api/billing/consolidated')
         .send({
-          parentAccountId: 'non-existent-id',
+          parentAccountId: '00000000-0000-0000-0000-000000000000', // Valid UUID format but non-existent
           periodStart: '2026-01-01',
           periodEnd: '2026-01-31',
         })
@@ -344,7 +344,7 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
       });
 
       await request(app.getHttpServer())
-        .post('/billing/consolidated')
+        .post('/api/billing/consolidated')
         .send({
           parentAccountId: parentAccount.id,
           periodStart: '2026-01-01',
@@ -358,7 +358,7 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
       await prisma.contract.deleteMany();
 
       await request(app.getHttpServer())
-        .post('/billing/consolidated')
+        .post('/api/billing/consolidated')
         .send({
           parentAccountId: parentAccount.id,
           periodStart: '2026-01-01',
@@ -388,7 +388,7 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
 
     it('should queue consolidated invoice generation job', async () => {
       const response = await request(app.getHttpServer())
-        .post('/billing/consolidated/queue')
+        .post('/api/billing/consolidated/queue')
         .send({
           parentAccountId: parentAccount.id,
           periodStart: '2026-01-01',
@@ -406,7 +406,7 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
   describe('GET /billing/consolidated/queue/stats', () => {
     it('should return consolidated billing queue statistics', async () => {
       const response = await request(app.getHttpServer())
-        .get('/billing/consolidated/queue/stats')
+        .get('/api/billing/consolidated/queue/stats')
         .expect(200);
 
       expect(response.body.data).toBeDefined();

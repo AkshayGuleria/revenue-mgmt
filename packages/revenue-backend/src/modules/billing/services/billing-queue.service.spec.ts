@@ -329,4 +329,84 @@ describe('BillingQueueService', () => {
       expect(result.total).toBe(51175);
     });
   });
+
+  describe('queueConsolidatedInvoiceGeneration', () => {
+    it('should queue a consolidated invoice generation job', async () => {
+      const jobData = {
+        parentAccountId: 'parent-123',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-01-31',
+        includeChildren: true,
+      };
+
+      const mockJob = { id: 'consolidated-job-123' };
+      mockConsolidatedQueue.add.mockResolvedValue(mockJob);
+
+      const result = await service.queueConsolidatedInvoiceGeneration(jobData);
+
+      expect(result).toBe('consolidated-job-123');
+      expect(mockConsolidatedQueue.add).toHaveBeenCalledWith(
+        'generate-consolidated-invoice',
+        jobData,
+        {
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    });
+
+    it('should queue job without optional includeChildren', async () => {
+      const jobData = {
+        parentAccountId: 'parent-456',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-01-31',
+      };
+
+      const mockJob = { id: 'consolidated-job-456' };
+      mockConsolidatedQueue.add.mockResolvedValue(mockJob);
+
+      const result = await service.queueConsolidatedInvoiceGeneration(jobData);
+
+      expect(result).toBe('consolidated-job-456');
+      expect(mockConsolidatedQueue.add).toHaveBeenCalledWith(
+        'generate-consolidated-invoice',
+        jobData,
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('getConsolidatedQueueStats', () => {
+    it('should return consolidated billing queue statistics', async () => {
+      mockConsolidatedQueue.getWaitingCount.mockResolvedValue(3);
+      mockConsolidatedQueue.getActiveCount.mockResolvedValue(1);
+      mockConsolidatedQueue.getCompletedCount.mockResolvedValue(50);
+      mockConsolidatedQueue.getFailedCount.mockResolvedValue(2);
+      mockConsolidatedQueue.getDelayedCount.mockResolvedValue(0);
+
+      const result = await service.getConsolidatedQueueStats();
+
+      expect(result).toEqual({
+        queue: 'consolidated-billing',
+        waiting: 3,
+        active: 1,
+        completed: 50,
+        failed: 2,
+        delayed: 0,
+        total: 56,
+      });
+    });
+
+    it('should return empty consolidated queue statistics', async () => {
+      mockConsolidatedQueue.getWaitingCount.mockResolvedValue(0);
+      mockConsolidatedQueue.getActiveCount.mockResolvedValue(0);
+      mockConsolidatedQueue.getCompletedCount.mockResolvedValue(0);
+      mockConsolidatedQueue.getFailedCount.mockResolvedValue(0);
+      mockConsolidatedQueue.getDelayedCount.mockResolvedValue(0);
+
+      const result = await service.getConsolidatedQueueStats();
+
+      expect(result.total).toBe(0);
+    });
+  });
 });

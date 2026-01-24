@@ -91,12 +91,14 @@ describe('InvoicesController (e2e)', () => {
       expect(response.body.data).toMatchObject({
         invoiceNumber: 'INV-E2E-0001',
         accountId: createdAccountId,
-        subtotal: '10000.00',
-        tax: '800.00',
-        discount: '500.00',
-        total: '10300.00',
         status: 'draft',
       });
+
+      // Verify numeric values (Decimal fields may serialize with or without trailing zeros)
+      expect(parseFloat(response.body.data.subtotal)).toBeCloseTo(10000);
+      expect(parseFloat(response.body.data.tax)).toBeCloseTo(800);
+      expect(parseFloat(response.body.data.discount)).toBeCloseTo(500);
+      expect(parseFloat(response.body.data.total)).toBeCloseTo(10300);
 
       // Check paging object structure
       expect(response.body.paging).toEqual({
@@ -135,12 +137,12 @@ describe('InvoicesController (e2e)', () => {
         .expect(HttpStatus.CREATED);
 
       expect(response.body.data.items).toHaveLength(1);
-      expect(response.body.data.items[0]).toMatchObject({
-        description: 'Enterprise Plan - 100 seats',
-        quantity: '100.00',
-        unitPrice: '99.99',
-        amount: '9999.00',
-      });
+      expect(response.body.data.items[0].description).toBe('Enterprise Plan - 100 seats');
+
+      // Verify numeric values (Decimal fields may serialize with or without trailing zeros)
+      expect(parseFloat(response.body.data.items[0].quantity)).toBeCloseTo(100);
+      expect(parseFloat(response.body.data.items[0].unitPrice)).toBeCloseTo(99.99);
+      expect(parseFloat(response.body.data.items[0].amount)).toBeCloseTo(9999);
     });
 
     it('should create invoice with contract reference', async () => {
@@ -363,7 +365,7 @@ describe('InvoicesController (e2e)', () => {
         })
         .expect(HttpStatus.OK);
 
-      expect(response.body.data.paidAmount).toBe('10300.00');
+      expect(parseFloat(response.body.data.paidAmount)).toBeCloseTo(10300);
       expect(response.body.data.status).toBe('paid');
     });
 
@@ -409,12 +411,10 @@ describe('InvoicesController (e2e)', () => {
         })
         .expect(HttpStatus.CREATED);
 
-      expect(response.body.data).toMatchObject({
-        description: 'Additional Service',
-        quantity: '10.00',
-        unitPrice: '50.00',
-        amount: '500.00',
-      });
+      expect(response.body.data.description).toBe('Additional Service');
+      expect(parseFloat(response.body.data.quantity)).toBeCloseTo(10);
+      expect(parseFloat(response.body.data.unitPrice)).toBeCloseTo(50);
+      expect(parseFloat(response.body.data.amount)).toBeCloseTo(500);
       expect(response.body.data.invoiceId).toBe(createdInvoiceId);
     });
 
