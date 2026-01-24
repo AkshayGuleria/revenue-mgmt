@@ -56,7 +56,67 @@ This directory contains GitHub Actions workflows for the Revenue Management syst
 - `REDIS_URL`: Redis connection string
 - `NODE_ENV`: Set to `test`
 
-### 2. Production Deployment (`production-deploy.yml`)
+### 2. Security Scanning (`security-scan.yml`)
+
+**Triggers:**
+- Pull requests to `main`/`master` branches
+- Pushes to `main`/`master` branches
+- Daily at 2 AM UTC (scheduled)
+- Manual workflow dispatch
+
+**Purpose:** Comprehensive security scanning for vulnerabilities, secrets, and compliance
+
+**Jobs:**
+
+#### 1. npm Audit - Vulnerability Check
+- Scans production dependencies for known vulnerabilities
+- Fails on moderate or higher severity issues
+- Checks dev dependencies (non-blocking)
+- Generates JSON audit report artifact
+
+#### 2. CodeQL Analysis - Code Security
+- Static code analysis for security vulnerabilities
+- Detects SQL injection, XSS, command injection, etc.
+- Scans only `src/` directory (excludes tests)
+- Uses security-and-quality query suite
+- Results published to GitHub Security tab
+
+#### 3. Dependency Review (PR only)
+- Reviews new dependencies added in PRs
+- Checks for security vulnerabilities
+- Validates licenses (denies GPL, allows MIT/Apache/BSD/ISC)
+- Posts summary comment on PR
+- Fails on moderate+ severity issues
+
+#### 4. Secrets Scanning
+- Uses TruffleHog to detect leaked credentials
+- Scans commit history for API keys, passwords, tokens
+- Only flags verified secrets (reduces false positives)
+- Covers database URLs, Stripe keys, SMTP passwords
+
+#### 5. SBOM Generation
+- Generates Software Bill of Materials (CycloneDX format)
+- Lists all dependencies and versions
+- Required for SOC2/ISO 27001 compliance
+- 90-day artifact retention for audit trail
+
+#### 6. Security Summary
+- Aggregates results from all security jobs
+- Displays comprehensive security status
+- Fails if any critical check fails
+
+**Security Checks:**
+- ✅ Known vulnerabilities (npm audit)
+- ✅ Code security issues (CodeQL)
+- ✅ New dependency risks (Dependency Review)
+- ✅ Leaked secrets (TruffleHog)
+- ✅ Supply chain transparency (SBOM)
+
+**Artifacts:**
+- `npm-audit-report`: JSON vulnerability report (30 days)
+- `sbom-cyclonedx`: Software Bill of Materials (90 days)
+
+### 3. Production Deployment (`production-deploy.yml`)
 
 **Triggers:** Pushes to `main`/`master` branches
 
@@ -87,6 +147,10 @@ npm run build         # Build check
 npm run test          # Unit tests
 npm run test:e2e      # E2E tests
 npm run test:cov      # Coverage check
+
+# Security checks
+npm audit --audit-level=moderate --production  # Vulnerability scan
+npx @cyclonedx/cyclonedx-npm --output-file sbom.json  # Generate SBOM
 ```
 
 ## Required Secrets
@@ -136,13 +200,18 @@ Coverage reports are automatically posted as PR comments:
 
 ## Performance
 
-**Average CI run time:** ~5-7 minutes
-
-Job breakdown:
+**PR CI Workflow:** ~5-7 minutes
 - Lint & Build: ~2 minutes
 - Unit Tests: ~2 minutes (parallel)
 - E2E Tests: ~1 minute (parallel)
 - Coverage: ~2 minutes (parallel)
+
+**Security Scan Workflow:** ~8-10 minutes
+- npm Audit: ~1 minute
+- CodeQL Analysis: ~5-7 minutes (builds + scans)
+- Dependency Review: ~30 seconds (PR only)
+- Secrets Scan: ~1-2 minutes
+- SBOM Generation: ~30 seconds
 
 ## Optimization
 
