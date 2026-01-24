@@ -10,7 +10,6 @@ import { PrismaService } from '../src/common/prisma/prisma.service';
 import {
   BillingFrequency,
   ContractStatus,
-  PaymentTerms,
 } from '../src/modules/contracts/dto/create-contract.dto';
 
 describe('Contracts API (e2e)', () => {
@@ -146,7 +145,9 @@ describe('Contracts API (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toContain('End date must be after start date');
+          expect(res.body.message).toContain(
+            'End date must be after start date',
+          );
         });
     });
 
@@ -250,7 +251,9 @@ describe('Contracts API (e2e)', () => {
         .get('/api/contracts?status[eq]=active')
         .expect(200)
         .expect((res) => {
-          expect(res.body.data.every((c: any) => c.status === 'active')).toBe(true);
+          expect(res.body.data.every((c: any) => c.status === 'active')).toBe(
+            true,
+          );
         });
     });
 
@@ -273,9 +276,9 @@ describe('Contracts API (e2e)', () => {
         .get(`/api/contracts?accountId[eq]=${testAccountId}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.data.every((c: any) => c.accountId === testAccountId)).toBe(
-            true,
-          );
+          expect(
+            res.body.data.every((c: any) => c.accountId === testAccountId),
+          ).toBe(true);
         });
     });
 
@@ -409,7 +412,9 @@ describe('Contracts API (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toContain('End date must be after start date');
+          expect(res.body.message).toContain(
+            'End date must be after start date',
+          );
         });
     });
   });

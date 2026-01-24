@@ -1,4 +1,10 @@
-import { IsUUID, IsOptional, IsDateString, IsEnum, IsBoolean } from 'class-validator';
+import {
+  IsUUID,
+  IsOptional,
+  IsDateString,
+  IsEnum,
+  IsBoolean,
+} from 'class-validator';
 
 export enum BillingPeriod {
   MONTHLY = 'monthly',

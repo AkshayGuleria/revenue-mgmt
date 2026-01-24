@@ -37,7 +37,9 @@ describe('ConsolidatedBillingService', () => {
       ],
     }).compile();
 
-    service = module.get<ConsolidatedBillingService>(ConsolidatedBillingService);
+    service = module.get<ConsolidatedBillingService>(
+      ConsolidatedBillingService,
+    );
     prisma = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();
@@ -59,8 +61,16 @@ describe('ConsolidatedBillingService', () => {
       };
 
       const subsidiaries = [
-        { id: 'sub-1', accountName: 'Subsidiary 1', parentAccountId: 'parent-id' },
-        { id: 'sub-2', accountName: 'Subsidiary 2', parentAccountId: 'parent-id' },
+        {
+          id: 'sub-1',
+          accountName: 'Subsidiary 1',
+          parentAccountId: 'parent-id',
+        },
+        {
+          id: 'sub-2',
+          accountName: 'Subsidiary 2',
+          parentAccountId: 'parent-id',
+        },
       ];
 
       const contracts = [
@@ -94,14 +104,20 @@ describe('ConsolidatedBillingService', () => {
         total: new Decimal(15000),
       };
 
-      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(parentAccount as any);
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(parentAccount as any);
       // Mock for getDescendantAccounts - first level
-      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce(subsidiaries as any);
+      jest
+        .spyOn(prisma.account, 'findMany')
+        .mockResolvedValueOnce(subsidiaries as any);
       // Mock for getDescendantAccounts - second level (sub-1 has no children)
       jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]);
       // Mock for getDescendantAccounts - second level (sub-2 has no children)
       jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]);
-      jest.spyOn(prisma.contract, 'findMany').mockResolvedValueOnce(contracts as any);
+      jest
+        .spyOn(prisma.contract, 'findMany')
+        .mockResolvedValueOnce(contracts as any);
       jest.spyOn(prisma.invoice, 'count').mockResolvedValueOnce(0);
 
       // Mock transaction
@@ -132,7 +148,11 @@ describe('ConsolidatedBillingService', () => {
           where: expect.objectContaining({
             OR: [
               { accountId: { in: ['parent-id', 'sub-1', 'sub-2'] } },
-              { shares: { some: { accountId: { in: ['parent-id', 'sub-1', 'sub-2'] } } } },
+              {
+                shares: {
+                  some: { accountId: { in: ['parent-id', 'sub-1', 'sub-2'] } },
+                },
+              },
             ],
           }),
         }),
@@ -158,7 +178,9 @@ describe('ConsolidatedBillingService', () => {
         deletedAt: null,
       };
 
-      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(parentAccount as any);
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(parentAccount as any);
 
       await expect(
         service.generateConsolidatedInvoice({
@@ -176,7 +198,9 @@ describe('ConsolidatedBillingService', () => {
         deletedAt: null,
       };
 
-      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(parentAccount as any);
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(parentAccount as any);
       jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]); // No descendants
       jest.spyOn(prisma.contract, 'findMany').mockResolvedValueOnce([]); // No contracts
 
@@ -219,9 +243,13 @@ describe('ConsolidatedBillingService', () => {
         total: new Decimal(10000),
       };
 
-      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(parentAccount as any);
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(parentAccount as any);
       // includeChildren is false, so no getDescendantAccounts call
-      jest.spyOn(prisma.contract, 'findMany').mockResolvedValueOnce(contracts as any);
+      jest
+        .spyOn(prisma.contract, 'findMany')
+        .mockResolvedValueOnce(contracts as any);
       jest.spyOn(prisma.invoice, 'count').mockResolvedValueOnce(0);
 
       mockPrismaService.$transaction.mockImplementation(async (callback) => {

@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsDateString, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsDateString,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { BasePaginationDto } from '../../../common/dto/pagination.dto';
 
@@ -191,7 +197,8 @@ export class QueryInvoicesDto extends BasePaginationDto {
 
   // NULL operator
   @ApiPropertyOptional({
-    description: 'Filter invoices with or without contract (true = no contract, false = has contract)',
+    description:
+      'Filter invoices with or without contract (true = no contract, false = has contract)',
     example: false,
   })
   @IsOptional()
@@ -200,7 +207,8 @@ export class QueryInvoicesDto extends BasePaginationDto {
   'contractId[null]'?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Filter invoices with or without paid date (true = not paid, false = paid)',
+    description:
+      'Filter invoices with or without paid date (true = not paid, false = paid)',
     example: true,
   })
   @IsOptional()

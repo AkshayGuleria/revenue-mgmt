@@ -91,20 +91,24 @@ describe('Billing API (e2e)', () => {
 
       // 2. Delete test contract
       if (testContractId) {
-        await prisma.contract.delete({
-          where: { id: testContractId },
-        }).catch(() => {
-          // Contract might already be deleted
-        });
+        await prisma.contract
+          .delete({
+            where: { id: testContractId },
+          })
+          .catch(() => {
+            // Contract might already be deleted
+          });
       }
 
       // 3. Delete test account last
       if (testAccountId) {
-        await prisma.account.delete({
-          where: { id: testAccountId },
-        }).catch(() => {
-          // Account might already be deleted
-        });
+        await prisma.account
+          .delete({
+            where: { id: testAccountId },
+          })
+          .catch(() => {
+            // Account might already be deleted
+          });
       }
     } catch (error) {
       console.error('Cleanup error:', error);

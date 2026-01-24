@@ -16,9 +16,20 @@ describe('QueryParser', () => {
     });
 
     it('should parse valid query key with all supported operators', () => {
-      const operators = ['eq', 'ne', 'lt', 'lte', 'gt', 'gte', 'in', 'nin', 'like', 'null'];
+      const operators = [
+        'eq',
+        'ne',
+        'lt',
+        'lte',
+        'gt',
+        'gte',
+        'in',
+        'nin',
+        'like',
+        'null',
+      ];
 
-      operators.forEach(op => {
+      operators.forEach((op) => {
         const result = parseQueryKey(`field[${op}]`);
         expect(result).toEqual({ field: 'field', operator: op });
       });
@@ -87,8 +98,16 @@ describe('QueryParser', () => {
       };
       const result = parseQueryFilters(query);
       expect(result).toHaveLength(2);
-      expect(result).toContainEqual({ field: 'status', operator: 'eq', value: 'active' });
-      expect(result).toContainEqual({ field: 'total', operator: 'gte', value: '100' });
+      expect(result).toContainEqual({
+        field: 'status',
+        operator: 'eq',
+        value: 'active',
+      });
+      expect(result).toContainEqual({
+        field: 'total',
+        operator: 'gte',
+        value: '100',
+      });
     });
 
     it('should skip pagination parameters', () => {
@@ -137,7 +156,7 @@ describe('QueryParser', () => {
     it('should skip invalid query keys', () => {
       const query = {
         'status[eq]': 'active',
-        'invalid_key': 'value',
+        invalid_key: 'value',
         'another[bad]': 'test',
       };
       const result = parseQueryFilters(query);
@@ -148,79 +167,133 @@ describe('QueryParser', () => {
 
   describe('filterToPrismaWhere', () => {
     it('should convert eq operator', () => {
-      const filter: QueryFilter = { field: 'status', operator: 'eq', value: 'active' };
+      const filter: QueryFilter = {
+        field: 'status',
+        operator: 'eq',
+        value: 'active',
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ status: 'active' });
     });
 
     it('should convert ne operator', () => {
-      const filter: QueryFilter = { field: 'status', operator: 'ne', value: 'cancelled' };
+      const filter: QueryFilter = {
+        field: 'status',
+        operator: 'ne',
+        value: 'cancelled',
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ status: { not: 'cancelled' } });
     });
 
     it('should convert lt operator', () => {
-      const filter: QueryFilter = { field: 'total', operator: 'lt', value: 100 };
+      const filter: QueryFilter = {
+        field: 'total',
+        operator: 'lt',
+        value: 100,
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ total: { lt: 100 } });
     });
 
     it('should convert lte operator', () => {
-      const filter: QueryFilter = { field: 'total', operator: 'lte', value: 100 };
+      const filter: QueryFilter = {
+        field: 'total',
+        operator: 'lte',
+        value: 100,
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ total: { lte: 100 } });
     });
 
     it('should convert gt operator', () => {
-      const filter: QueryFilter = { field: 'total', operator: 'gt', value: 100 };
+      const filter: QueryFilter = {
+        field: 'total',
+        operator: 'gt',
+        value: 100,
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ total: { gt: 100 } });
     });
 
     it('should convert gte operator', () => {
-      const filter: QueryFilter = { field: 'total', operator: 'gte', value: 100 };
+      const filter: QueryFilter = {
+        field: 'total',
+        operator: 'gte',
+        value: 100,
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ total: { gte: 100 } });
     });
 
     it('should convert in operator with array', () => {
-      const filter: QueryFilter = { field: 'status', operator: 'in', value: ['active', 'pending'] };
+      const filter: QueryFilter = {
+        field: 'status',
+        operator: 'in',
+        value: ['active', 'pending'],
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ status: { in: ['active', 'pending'] } });
     });
 
     it('should convert in operator with single value', () => {
-      const filter: QueryFilter = { field: 'status', operator: 'in', value: 'active' };
+      const filter: QueryFilter = {
+        field: 'status',
+        operator: 'in',
+        value: 'active',
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ status: { in: ['active'] } });
     });
 
     it('should convert nin operator with array', () => {
-      const filter: QueryFilter = { field: 'status', operator: 'nin', value: ['cancelled', 'void'] };
+      const filter: QueryFilter = {
+        field: 'status',
+        operator: 'nin',
+        value: ['cancelled', 'void'],
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ status: { notIn: ['cancelled', 'void'] } });
     });
 
     it('should convert nin operator with single value', () => {
-      const filter: QueryFilter = { field: 'status', operator: 'nin', value: 'cancelled' };
+      const filter: QueryFilter = {
+        field: 'status',
+        operator: 'nin',
+        value: 'cancelled',
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ status: { notIn: ['cancelled'] } });
     });
 
     it('should convert like operator', () => {
-      const filter: QueryFilter = { field: 'accountName', operator: 'like', value: 'acme' };
+      const filter: QueryFilter = {
+        field: 'accountName',
+        operator: 'like',
+        value: 'acme',
+      };
       const result = filterToPrismaWhere(filter);
-      expect(result).toEqual({ accountName: { contains: 'acme', mode: 'insensitive' } });
+      expect(result).toEqual({
+        accountName: { contains: 'acme', mode: 'insensitive' },
+      });
     });
 
     it('should convert null operator with true value', () => {
-      const filter: QueryFilter = { field: 'parentAccountId', operator: 'null', value: true };
+      const filter: QueryFilter = {
+        field: 'parentAccountId',
+        operator: 'null',
+        value: true,
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ parentAccountId: null });
     });
 
     it('should convert null operator with false value', () => {
-      const filter: QueryFilter = { field: 'parentAccountId', operator: 'null', value: false };
+      const filter: QueryFilter = {
+        field: 'parentAccountId',
+        operator: 'null',
+        value: false,
+      };
       const result = filterToPrismaWhere(filter);
       expect(result).toEqual({ parentAccountId: { not: null } });
     });
@@ -247,10 +320,7 @@ describe('QueryParser', () => {
       ];
       const result = filtersToPrismaWhere(filters);
       expect(result).toEqual({
-        AND: [
-          { status: 'active' },
-          { total: { gte: 100 } },
-        ],
+        AND: [{ status: 'active' }, { total: { gte: 100 } }],
       });
     });
 
@@ -317,14 +387,22 @@ describe('QueryParser', () => {
 
   describe('Type Conversion', () => {
     it('should convert ISO date strings to Date objects for comparison operators', () => {
-      const filter: QueryFilter = { field: 'createdAt', operator: 'gte', value: '2024-01-01' };
+      const filter: QueryFilter = {
+        field: 'createdAt',
+        operator: 'gte',
+        value: '2024-01-01',
+      };
       const result = filterToPrismaWhere(filter);
       expect(result.createdAt.gte).toBeInstanceOf(Date);
       expect(result.createdAt.gte.toISOString()).toContain('2024-01-01');
     });
 
     it('should convert ISO datetime strings to Date objects', () => {
-      const filter: QueryFilter = { field: 'createdAt', operator: 'lte', value: '2024-12-31T23:59:59Z' };
+      const filter: QueryFilter = {
+        field: 'createdAt',
+        operator: 'lte',
+        value: '2024-12-31T23:59:59Z',
+      };
       const result = filterToPrismaWhere(filter);
       expect(result.createdAt.lte).toBeInstanceOf(Date);
     });
@@ -337,7 +415,7 @@ describe('QueryParser', () => {
         { field: 'total', operator: 'lte', value: '200' },
       ];
 
-      filters.forEach(filter => {
+      filters.forEach((filter) => {
         const result = filterToPrismaWhere(filter);
         const operatorValue = result.total[filter.operator];
         expect(typeof operatorValue).toBe('number');
@@ -346,14 +424,22 @@ describe('QueryParser', () => {
     });
 
     it('should not convert non-numeric strings', () => {
-      const filter: QueryFilter = { field: 'status', operator: 'eq', value: 'active' };
+      const filter: QueryFilter = {
+        field: 'status',
+        operator: 'eq',
+        value: 'active',
+      };
       const result = filterToPrismaWhere(filter);
       expect(result.status).toBe('active');
       expect(typeof result.status).toBe('string');
     });
 
     it('should not convert dates for eq operator with date strings', () => {
-      const filter: QueryFilter = { field: 'date', operator: 'eq', value: '2024-01-01' };
+      const filter: QueryFilter = {
+        field: 'date',
+        operator: 'eq',
+        value: '2024-01-01',
+      };
       const result = filterToPrismaWhere(filter);
       // eq operator should convert dates too
       expect(result.date).toBeInstanceOf(Date);

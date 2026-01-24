@@ -7,6 +7,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { join } from 'path';
+import fastifyStatic from '@fastify/static';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -27,7 +28,7 @@ async function bootstrap() {
   app.enableCors();
 
   // Serve static files from public directory
-  await app.register(require('@fastify/static'), {
+  await app.register(fastifyStatic, {
     root: join(__dirname, 'public'),
     prefix: '/',
     decorateReply: false, // Don't add reply.sendFile method

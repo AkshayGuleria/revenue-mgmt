@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -26,7 +30,12 @@ export class ConsolidatedBillingService {
   async generateConsolidatedInvoice(
     params: ConsolidatedInvoiceParams,
   ): Promise<ConsolidatedInvoiceResult> {
-    const { parentAccountId, periodStart, periodEnd, includeChildren = true } = params;
+    const {
+      parentAccountId,
+      periodStart,
+      periodEnd,
+      includeChildren = true,
+    } = params;
 
     // Fetch parent account
     const parentAccount = await this.prisma.account.findUnique({
@@ -34,7 +43,9 @@ export class ConsolidatedBillingService {
     });
 
     if (!parentAccount || parentAccount.deletedAt) {
-      throw new NotFoundException(`Parent account ${parentAccountId} not found`);
+      throw new NotFoundException(
+        `Parent account ${parentAccountId} not found`,
+      );
     }
 
     if (parentAccount.creditHold) {
@@ -108,7 +119,11 @@ export class ConsolidatedBillingService {
 
       if (contractAmount.total.gt(0)) {
         lineItems.push({
-          description: this.buildLineItemDescription(contract, periodStart, periodEnd),
+          description: this.buildLineItemDescription(
+            contract,
+            periodStart,
+            periodEnd,
+          ),
           quantity: contractAmount.quantity,
           unitPrice: contractAmount.unitPrice,
           amount: contractAmount.total,
@@ -140,7 +155,10 @@ export class ConsolidatedBillingService {
 
     // Calculate due date
     const issueDate = new Date();
-    const dueDate = this.calculateDueDate(issueDate, parentAccount.paymentTermsDays);
+    const dueDate = this.calculateDueDate(
+      issueDate,
+      parentAccount.paymentTermsDays,
+    );
 
     // Create consolidated invoice
     const invoice = await this.prisma.$transaction(async (tx) => {
@@ -227,10 +245,14 @@ export class ConsolidatedBillingService {
 
   /**
    * Calculate amount for a single contract in the billing period
+   * TODO: Implement pro-rated billing based on period dates
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async calculateContractAmount(
     contract: any,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     periodStart: Date,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     periodEnd: Date,
   ): Promise<{
     quantity: Decimal;
@@ -295,6 +317,7 @@ export class ConsolidatedBillingService {
   /**
    * Calculate tax based on account configuration
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private calculateTax(subtotal: Decimal, account: any): Decimal {
     // TODO: Implement tax calculation based on jurisdiction
     // For now, return 0

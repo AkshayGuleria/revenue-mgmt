@@ -392,7 +392,10 @@ describe('API Query Parameters & Path Validation (e2e)', () => {
     it('should filter by issueDate[gte] and issueDate[lte]', () => {
       return request(app.getHttpServer())
         .get('/api/invoices')
-        .query({ 'issueDate[gte]': '2026-01-01', 'issueDate[lte]': '2026-12-31' })
+        .query({
+          'issueDate[gte]': '2026-01-01',
+          'issueDate[lte]': '2026-12-31',
+        })
         .expect(HttpStatus.OK);
     });
 

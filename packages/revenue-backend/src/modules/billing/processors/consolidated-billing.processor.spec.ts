@@ -34,6 +34,9 @@ describe('ConsolidatedBillingProcessor', () => {
     consolidatedBillingService = module.get<ConsolidatedBillingService>(
       ConsolidatedBillingService,
     );
+
+    // Prevent unused variable warning
+    void consolidatedBillingService;
   });
 
   afterEach(() => {
@@ -121,7 +124,9 @@ describe('ConsolidatedBillingProcessor', () => {
           .calls[0][0];
       expect(callArgs.periodStart).toBeInstanceOf(Date);
       expect(callArgs.periodEnd).toBeInstanceOf(Date);
-      expect(callArgs.periodStart.toISOString()).toBe('2026-02-01T00:00:00.000Z');
+      expect(callArgs.periodStart.toISOString()).toBe(
+        '2026-02-01T00:00:00.000Z',
+      );
       expect(callArgs.periodEnd.toISOString()).toBe('2026-02-28T23:59:59.999Z');
     });
 

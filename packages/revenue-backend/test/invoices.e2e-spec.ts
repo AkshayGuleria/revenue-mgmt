@@ -137,11 +137,15 @@ describe('InvoicesController (e2e)', () => {
         .expect(HttpStatus.CREATED);
 
       expect(response.body.data.items).toHaveLength(1);
-      expect(response.body.data.items[0].description).toBe('Enterprise Plan - 100 seats');
+      expect(response.body.data.items[0].description).toBe(
+        'Enterprise Plan - 100 seats',
+      );
 
       // Verify numeric values (Decimal fields may serialize with or without trailing zeros)
       expect(parseFloat(response.body.data.items[0].quantity)).toBeCloseTo(100);
-      expect(parseFloat(response.body.data.items[0].unitPrice)).toBeCloseTo(99.99);
+      expect(parseFloat(response.body.data.items[0].unitPrice)).toBeCloseTo(
+        99.99,
+      );
       expect(parseFloat(response.body.data.items[0].amount)).toBeCloseTo(9999);
     });
 
@@ -377,17 +381,15 @@ describe('InvoicesController (e2e)', () => {
     });
 
     it('should fail if invoice number already exists', async () => {
-      // Create second invoice
-      const secondInvoice = await request(app.getHttpServer())
-        .post('/api/invoices')
-        .send({
-          invoiceNumber: 'INV-E2E-UNIQUE',
-          accountId: createdAccountId,
-          issueDate: '2024-04-01',
-          dueDate: '2024-04-30',
-          subtotal: 5000,
-          total: 5000,
-        });
+      // Create second invoice with unique number
+      await request(app.getHttpServer()).post('/api/invoices').send({
+        invoiceNumber: 'INV-E2E-UNIQUE',
+        accountId: createdAccountId,
+        issueDate: '2024-04-01',
+        dueDate: '2024-04-30',
+        subtotal: 5000,
+        total: 5000,
+      });
 
       // Try to update first invoice with second invoice's number
       await request(app.getHttpServer())
@@ -465,9 +467,7 @@ describe('InvoicesController (e2e)', () => {
 
     it('should return 404 for non-existent item', async () => {
       await request(app.getHttpServer())
-        .delete(
-          `/api/invoices/${createdInvoiceId}/items/non-existent-item-id`,
-        )
+        .delete(`/api/invoices/${createdInvoiceId}/items/non-existent-item-id`)
         .expect(HttpStatus.NOT_FOUND);
     });
 

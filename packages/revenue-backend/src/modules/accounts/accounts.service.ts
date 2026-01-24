@@ -432,7 +432,12 @@ export class AccountsService {
 
     for (const child of children) {
       result.push({ ...child, depth: currentDepth + 1 });
-      await this.collectDescendants(child.id, result, currentDepth + 1, maxDepth);
+      await this.collectDescendants(
+        child.id,
+        result,
+        currentDepth + 1,
+        maxDepth,
+      );
     }
   }
 

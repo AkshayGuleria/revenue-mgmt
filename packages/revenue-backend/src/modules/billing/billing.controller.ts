@@ -42,9 +42,7 @@ export class BillingController {
     description: 'Contract not found',
   })
   async generateInvoice(@Body() dto: GenerateInvoiceDto) {
-    const periodStart = dto.periodStart
-      ? new Date(dto.periodStart)
-      : undefined;
+    const periodStart = dto.periodStart ? new Date(dto.periodStart) : undefined;
     const periodEnd = dto.periodEnd ? new Date(dto.periodEnd) : undefined;
 
     const result = await this.billingEngine.generateInvoiceFromContract({

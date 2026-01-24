@@ -47,6 +47,10 @@ describe('BillingEngineService', () => {
     service = module.get<BillingEngineService>(BillingEngineService);
     prismaService = module.get<PrismaService>(PrismaService);
     seatCalculator = module.get<SeatCalculatorService>(SeatCalculatorService);
+
+    // Prevent unused variable warnings
+    void prismaService;
+    void seatCalculator;
   });
 
   afterEach(() => {

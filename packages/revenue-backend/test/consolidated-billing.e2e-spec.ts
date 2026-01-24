@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ValidationPipe } from '@nestjs/common';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
@@ -12,9 +15,6 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
   let parentAccount: any;
   let child1Account: any;
   let child2Account: any;
-  let product: any;
-  let parentContract: any;
-  let child1Contract: any;
   let sharedContract: any;
 
   beforeAll(async () => {
@@ -88,7 +88,8 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
         currency: 'USD',
         active: true,
       });
-    product = productResponse.body.data;
+    // Store product for tests (referenced by product.id)
+    void productResponse.body.data;
   });
 
   describe('Shared Contracts', () => {
@@ -192,7 +193,9 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
 
       // Unshare
       await request(app.getHttpServer())
-        .delete(`/api/contracts/${sharedContract.id}/shares/${child1Account.id}`)
+        .delete(
+          `/api/contracts/${sharedContract.id}/shares/${child1Account.id}`,
+        )
         .expect(204);
 
       // Verify it's unshared
@@ -220,7 +223,8 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
           seatPrice: 100,
           status: 'active',
         });
-      parentContract = parentContractResponse.body.data;
+      // Store parent contract (not used in this test)
+      void parentContractResponse.body.data;
 
       const child1ContractResponse = await request(app.getHttpServer())
         .post('/api/contracts')
@@ -235,7 +239,8 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
           seatPrice: 100,
           status: 'active',
         });
-      child1Contract = child1ContractResponse.body.data;
+      // Store child1 contract (not used in this test)
+      void child1ContractResponse.body.data;
     });
 
     it('should generate consolidated invoice for parent and subsidiaries', async () => {
@@ -383,7 +388,8 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
           seatPrice: 100,
           status: 'active',
         });
-      parentContract = parentContractResponse.body.data;
+      // Store parent contract (not used in this test)
+      void parentContractResponse.body.data;
     });
 
     it('should queue consolidated invoice generation job', async () => {

@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { QUEUE_NAMES, JOB_TYPES } from '../../../common/queues';
+import { QUEUE_NAMES } from '../../../common/queues';
 import { ConsolidatedBillingService } from '../services/consolidated-billing.service';
 
 export interface ConsolidatedBillingJobData {
@@ -29,19 +29,21 @@ export class ConsolidatedBillingProcessor extends WorkerHost {
     );
 
     try {
-      const { parentAccountId, periodStart, periodEnd, includeChildren } = job.data;
+      const { parentAccountId, periodStart, periodEnd, includeChildren } =
+        job.data;
 
       // Generate consolidated invoice
-      const result = await this.consolidatedBillingService.generateConsolidatedInvoice({
-        parentAccountId,
-        periodStart: new Date(periodStart),
-        periodEnd: new Date(periodEnd),
-        includeChildren,
-      });
+      const result =
+        await this.consolidatedBillingService.generateConsolidatedInvoice({
+          parentAccountId,
+          periodStart: new Date(periodStart),
+          periodEnd: new Date(periodEnd),
+          includeChildren,
+        });
 
       this.logger.log(
         `Consolidated invoice ${result.invoiceNumber} generated for parent account ${parentAccountId}. ` +
-        `Included ${result.subsidiariesIncluded} subsidiaries. Total: ${result.total}`,
+          `Included ${result.subsidiariesIncluded} subsidiaries. Total: ${result.total}`,
       );
 
       return {
