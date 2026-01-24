@@ -40,6 +40,7 @@ expect.extend({
 
 // Declare custom matcher types
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toBeValidUUID(): R;
