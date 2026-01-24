@@ -50,14 +50,8 @@ jobs:
       - name: Run npm audit
         run: |
           echo "🔍 Running npm audit for known vulnerabilities..."
-          npm audit --audit-level=critical --production
-          echo "✅ No critical vulnerabilities found in production dependencies"
-
-      - name: Run npm audit (dev dependencies)
-        continue-on-error: true
-        run: |
-          echo "🔍 Checking dev dependencies (non-blocking)..."
-          npm audit --audit-level=high || echo "⚠️  Dev dependency vulnerabilities found (non-blocking)"
+          npm audit --audit-level=critical
+          echo "✅ No critical vulnerabilities found"
 
       - name: Generate audit report
         if: always()
@@ -141,10 +135,7 @@ jobs:
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
         with:
-          base-ref: ${{ github.base_ref }}
-          head-ref: ${{ github.head_ref }}
           fail-on-severity: critical
-          comment-summary-in-pr: always
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
 
   # =================================
@@ -237,15 +228,24 @@ jobs:
           echo "| SBOM Generation | ${{ needs.sbom-generation.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
+          # Check if all required jobs succeeded (skipped jobs are okay)
           if [[ "${{ needs.npm-audit.result }}" == "success" ]] && \
              [[ "${{ needs.codeql-analysis.result }}" == "success" ]] && \
              [[ "${{ needs.secrets-scan.result }}" == "success" ]] && \
              [[ "${{ needs.sbom-generation.result }}" == "success" ]]; then
             echo "### ✅ All security checks passed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Note: Dependency review only runs on pull requests." >> $GITHUB_STEP_SUMMARY
             exit 0
           else
-            echo "### ⚠️  Some security checks failed or were skipped" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️  Some security checks failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Please review the failed checks above and address any security concerns." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Failed Jobs:**" >> $GITHUB_STEP_SUMMARY
+            [[ "${{ needs.npm-audit.result }}" != "success" ]] && echo "- npm Audit: ${{ needs.npm-audit.result }}" >> $GITHUB_STEP_SUMMARY
+            [[ "${{ needs.codeql-analysis.result }}" != "success" ]] && echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}" >> $GITHUB_STEP_SUMMARY
+            [[ "${{ needs.secrets-scan.result }}" != "success" ]] && echo "- Secrets Scan: ${{ needs.secrets-scan.result }}" >> $GITHUB_STEP_SUMMARY
+            [[ "${{ needs.sbom-generation.result }}" != "success" ]] && echo "- SBOM Generation: ${{ needs.sbom-generation.result }}" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
