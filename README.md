@@ -6,7 +6,7 @@
 
 A complete revenue management system designed for B2B SaaS companies selling to large enterprises. Handles multi-year contracts, hierarchical account structures, consolidated billing, and custom payment terms.
 
-**Current Status:** 🟢 Phase 1 - Foundation (In Progress)
+**Current Status:** ✅ Phase 3 - Hierarchical Accounts & Consolidated Billing (COMPLETED)
 
 ### Key Features
 
@@ -146,9 +146,9 @@ Note: Frontend (Revenue app) is in a separate repository
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| **Phase 1** | Foundation - Accounts, Contracts, Products, Invoices | 🟡 In Progress |
-| **Phase 2** | Contract Billing + Scalability (PM2, BullMQ, Workers) | ⚪ Planned |
-| **Phase 3** | Hierarchical Accounts + Consolidated Billing | ⚪ Planned |
+| **Phase 1** | Foundation - Accounts, Contracts, Products, Invoices | ✅ Completed |
+| **Phase 2** | Contract Billing + Scalability (PM2, BullMQ, Workers) | ✅ Completed |
+| **Phase 3** | Hierarchical Accounts + Consolidated Billing | ✅ Completed |
 | **Phase 4** | Purchase Orders + Credit Management + Payments | ⚪ Planned |
 | **Phase 5** | Analytics + Renewal Tracking + Webhooks | ⚪ Planned |
 | **Phase 6+** | B2C Event-Based Billing | 🔵 Deferred |
@@ -409,4 +409,4 @@ UNLICENSED - Internal use only
 
 **Built with:** NestJS • Fastify • Prisma • PostgreSQL • TypeScript • SWC
 
-**Status:** 🟢 Phase 1 Active Development
+**Status:** ✅ Phases 1-3 Completed | Phase 4-5 Planned
