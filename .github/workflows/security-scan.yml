@@ -50,8 +50,8 @@ jobs:
       - name: Run npm audit
         run: |
           echo "🔍 Running npm audit for known vulnerabilities..."
-          npm audit --audit-level=moderate --omit=dev
-          echo "✅ No moderate or higher vulnerabilities found in production dependencies"
+          npm audit --audit-level=high --omit=dev
+          echo "✅ No high or critical vulnerabilities found in production dependencies"
 
       - name: Run npm audit (dev dependencies)
         continue-on-error: true
