@@ -124,9 +124,13 @@ describe('ConsolidatedBillingProcessor', () => {
           .calls[0][0];
       expect(callArgs.periodStart).toBeInstanceOf(Date);
       expect(callArgs.periodEnd).toBeInstanceOf(Date);
+<<<<<<< HEAD
       expect(callArgs.periodStart.toISOString()).toBe(
         '2026-02-01T00:00:00.000Z',
       );
+=======
+      expect(callArgs.periodStart.toISOString()).toBe('2026-02-01T00:00:00.000Z');
+>>>>>>> 5cbb175 (test: comprehensive test coverage improvements and e2e fixes)
       expect(callArgs.periodEnd.toISOString()).toBe('2026-02-28T23:59:59.999Z');
     });
 
