@@ -52,6 +52,9 @@ describe('ContractsService', () => {
     service = module.get<ContractsService>(ContractsService);
     prisma = module.get<PrismaService>(PrismaService);
 
+    // Prevent unused variable warning
+    void prisma;
+
     jest.clearAllMocks();
   });
 
@@ -401,12 +404,12 @@ describe('ContractsService', () => {
         endDate: '2024-01-01',
       };
 
-      await expect(
-        service.update('contract-1', invalidUpdate),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.update('contract-1', invalidUpdate),
-      ).rejects.toThrow('End date must be after start date');
+      await expect(service.update('contract-1', invalidUpdate)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.update('contract-1', invalidUpdate)).rejects.toThrow(
+        'End date must be after start date',
+      );
     });
 
     it('should throw ConflictException when contract number already exists', async () => {

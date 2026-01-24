@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+// Prisma type imports for query building
 import { QueryOperator, QueryFilter, PaginationParams } from '../interfaces';
 
 /**
@@ -45,7 +45,9 @@ export function parseQueryKey(key: string): {
 /**
  * Parse pagination parameters from query string
  */
-export function parsePaginationParams(query: Record<string, any>): PaginationParams {
+export function parsePaginationParams(
+  query: Record<string, any>,
+): PaginationParams {
   let offset = parseInt(query['offset[eq]']) || 0;
   let limit = parseInt(query['limit[eq]']) || 20;
 
@@ -108,7 +110,11 @@ function isISODateString(value: any): boolean {
  * Convert value to appropriate type for Prisma
  * Automatically converts ISO date strings to Date objects for date comparisons
  */
-function convertValueType(value: any, field: string, operator: QueryOperator): any {
+function convertValueType(
+  value: any,
+  field: string,
+  operator: QueryOperator,
+): any {
   // Convert ISO date strings to Date objects for date/time fields
   if (isISODateString(value)) {
     return new Date(value);
@@ -116,7 +122,10 @@ function convertValueType(value: any, field: string, operator: QueryOperator): a
 
   // Convert numeric strings to numbers for numeric comparison operators
   if (
-    (operator === 'gt' || operator === 'gte' || operator === 'lt' || operator === 'lte') &&
+    (operator === 'gt' ||
+      operator === 'gte' ||
+      operator === 'lt' ||
+      operator === 'lte') &&
     typeof value === 'string' &&
     !isNaN(Number(value))
   ) {
@@ -180,9 +189,7 @@ export function filterToPrismaWhere(filter: QueryFilter): any {
 export function filtersToPrismaWhere(filters: QueryFilter[]): any {
   if (filters.length === 0) return {};
 
-  const whereConditions = filters.map((filter) =>
-    filterToPrismaWhere(filter),
-  );
+  const whereConditions = filters.map((filter) => filterToPrismaWhere(filter));
 
   // Single filter - return directly
   if (whereConditions.length === 1) {

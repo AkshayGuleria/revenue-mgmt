@@ -267,7 +267,8 @@ describe('Products API (e2e)', () => {
           expect(
             res.body.data.every(
               (p: any) =>
-                p.pricingModel === 'seat_based' || p.pricingModel === 'flat_fee',
+                p.pricingModel === 'seat_based' ||
+                p.pricingModel === 'flat_fee',
             ),
           ).toBe(true);
         });

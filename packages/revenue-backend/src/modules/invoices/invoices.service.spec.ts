@@ -6,12 +6,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  CreateInvoiceDto,
-  UpdateInvoiceDto,
-  QueryInvoicesDto,
-  InvoiceStatus,
-} from './dto';
+import { CreateInvoiceDto, UpdateInvoiceDto, InvoiceStatus } from './dto';
 import { Prisma } from '@prisma/client';
 
 describe('InvoicesService', () => {
@@ -53,6 +48,9 @@ describe('InvoicesService', () => {
 
     service = module.get<InvoicesService>(InvoicesService);
     prisma = module.get<PrismaService>(PrismaService);
+
+    // Prevent unused variable warning
+    void prisma;
 
     // Reset all mocks before each test
     jest.clearAllMocks();
@@ -438,9 +436,9 @@ describe('InvoicesService', () => {
       );
       mockPrismaService.invoice.update.mockRejectedValue(prismaError);
 
-      await expect(
-        service.update('invoice-id-123', updateDto),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.update('invoice-id-123', updateDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -514,9 +512,9 @@ describe('InvoicesService', () => {
 
       mockPrismaService.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.addLineItem('invalid-id', itemDto),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.addLineItem('invalid-id', itemDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -612,7 +610,9 @@ describe('InvoicesService', () => {
       const unknownError = new Error('Database connection failed');
       mockPrismaService.invoice.create.mockRejectedValue(unknownError);
 
-      await expect(service.create(dto)).rejects.toThrow('Database connection failed');
+      await expect(service.create(dto)).rejects.toThrow(
+        'Database connection failed',
+      );
     });
   });
 

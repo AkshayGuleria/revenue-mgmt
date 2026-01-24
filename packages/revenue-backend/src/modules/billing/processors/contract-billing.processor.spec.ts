@@ -28,10 +28,11 @@ describe('ContractBillingProcessor', () => {
       ],
     }).compile();
 
-    processor = module.get<ContractBillingProcessor>(
-      ContractBillingProcessor,
-    );
+    processor = module.get<ContractBillingProcessor>(ContractBillingProcessor);
     billingEngine = module.get<BillingEngineService>(BillingEngineService);
+
+    // Prevent unused variable warning
+    void billingEngine;
   });
 
   afterEach(() => {

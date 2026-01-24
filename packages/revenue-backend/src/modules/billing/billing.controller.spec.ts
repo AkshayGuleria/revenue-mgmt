@@ -51,7 +51,14 @@ describe('BillingController', () => {
     controller = module.get<BillingController>(BillingController);
     billingEngine = module.get<BillingEngineService>(BillingEngineService);
     billingQueue = module.get<BillingQueueService>(BillingQueueService);
-    consolidatedBilling = module.get<ConsolidatedBillingService>(ConsolidatedBillingService);
+    consolidatedBilling = module.get<ConsolidatedBillingService>(
+      ConsolidatedBillingService,
+    );
+
+    // Prevent unused variable warnings
+    void billingEngine;
+    void billingQueue;
+    void consolidatedBilling;
   });
 
   afterEach(() => {
@@ -272,9 +279,7 @@ describe('BillingController', () => {
         },
       });
 
-      expect(
-        mockBillingQueue.queueBatchContractBilling,
-      ).toHaveBeenCalledWith({
+      expect(mockBillingQueue.queueBatchContractBilling).toHaveBeenCalledWith({
         billingDate: expect.any(String),
         billingPeriod: 'monthly',
       });
@@ -293,9 +298,7 @@ describe('BillingController', () => {
       const result = await controller.queueBatchBilling(dto);
 
       expect(result.data.jobId).toBe('batch-job-456');
-      expect(
-        mockBillingQueue.queueBatchContractBilling,
-      ).toHaveBeenCalledWith({
+      expect(mockBillingQueue.queueBatchContractBilling).toHaveBeenCalledWith({
         billingDate: '2026-01-01',
         billingPeriod: BillingPeriod.QUARTERLY,
       });
@@ -313,9 +316,7 @@ describe('BillingController', () => {
 
       await controller.queueBatchBilling(dto);
 
-      expect(
-        mockBillingQueue.queueBatchContractBilling,
-      ).toHaveBeenCalledWith({
+      expect(mockBillingQueue.queueBatchContractBilling).toHaveBeenCalledWith({
         billingDate: '2026-01-01',
         billingPeriod: BillingPeriod.ANNUAL,
       });
@@ -403,6 +404,154 @@ describe('BillingController', () => {
       });
 
       expect(mockBillingQueue.getQueueStats).toHaveBeenCalled();
+    });
+  });
+
+  describe('generateConsolidatedInvoice', () => {
+    it('should generate consolidated invoice synchronously', async () => {
+      const dto = {
+        parentAccountId: 'parent-123',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-01-31',
+        includeChildren: true,
+      };
+
+      const mockResult = {
+        invoiceId: 'consolidated-invoice-123',
+        invoiceNumber: 'CONS-INV-2026-000001',
+        total: new Decimal(150000),
+        subsidiariesIncluded: 2,
+      };
+
+      mockConsolidatedBilling.generateConsolidatedInvoice.mockResolvedValue(
+        mockResult,
+      );
+
+      const result = await controller.generateConsolidatedInvoice(dto);
+
+      expect(result).toEqual({
+        data: mockResult,
+        paging: {
+          offset: null,
+          limit: null,
+          total: null,
+          totalPages: null,
+          hasNext: null,
+          hasPrev: null,
+        },
+      });
+
+      expect(
+        mockConsolidatedBilling.generateConsolidatedInvoice,
+      ).toHaveBeenCalledWith({
+        parentAccountId: 'parent-123',
+        periodStart: new Date('2026-01-01'),
+        periodEnd: new Date('2026-01-31'),
+        includeChildren: true,
+      });
+    });
+
+    it('should default includeChildren to true when not provided', async () => {
+      const dto = {
+        parentAccountId: 'parent-456',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-01-31',
+      };
+
+      const mockResult = {
+        invoiceId: 'consolidated-invoice-456',
+        invoiceNumber: 'CONS-INV-2026-000002',
+        total: new Decimal(75000),
+        subsidiariesIncluded: 1,
+      };
+
+      mockConsolidatedBilling.generateConsolidatedInvoice.mockResolvedValue(
+        mockResult,
+      );
+
+      await controller.generateConsolidatedInvoice(dto);
+
+      expect(
+        mockConsolidatedBilling.generateConsolidatedInvoice,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          includeChildren: true,
+        }),
+      );
+    });
+  });
+
+  describe('queueConsolidatedInvoiceGeneration', () => {
+    it('should queue consolidated invoice generation', async () => {
+      const dto = {
+        parentAccountId: 'parent-789',
+        periodStart: '2026-02-01',
+        periodEnd: '2026-02-28',
+        includeChildren: false,
+      };
+
+      mockBillingQueue.queueConsolidatedInvoiceGeneration.mockResolvedValue(
+        'job-789',
+      );
+
+      const result = await controller.queueConsolidatedInvoiceGeneration(dto);
+
+      expect(result).toEqual({
+        data: {
+          jobId: 'job-789',
+          status: 'queued',
+          message: 'Consolidated invoice generation job queued successfully',
+        },
+        paging: {
+          offset: null,
+          limit: null,
+          total: null,
+          totalPages: null,
+          hasNext: null,
+          hasPrev: null,
+        },
+      });
+
+      expect(
+        mockBillingQueue.queueConsolidatedInvoiceGeneration,
+      ).toHaveBeenCalledWith({
+        parentAccountId: 'parent-789',
+        periodStart: '2026-02-01',
+        periodEnd: '2026-02-28',
+        includeChildren: false,
+      });
+    });
+  });
+
+  describe('getConsolidatedQueueStats', () => {
+    it('should return consolidated billing queue statistics', async () => {
+      const mockStats = {
+        queue: 'consolidated-billing',
+        waiting: 2,
+        active: 1,
+        completed: 45,
+        failed: 1,
+        delayed: 0,
+        total: 49,
+      };
+
+      mockBillingQueue.getConsolidatedQueueStats.mockResolvedValue(mockStats);
+
+      const result = await controller.getConsolidatedQueueStats();
+
+      expect(result).toEqual({
+        data: mockStats,
+        paging: {
+          offset: null,
+          limit: null,
+          total: null,
+          totalPages: null,
+          hasNext: null,
+          hasPrev: null,
+        },
+      });
+
+      expect(mockBillingQueue.getConsolidatedQueueStats).toHaveBeenCalled();
     });
   });
 });

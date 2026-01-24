@@ -91,20 +91,24 @@ describe('Billing API (e2e)', () => {
 
       // 2. Delete test contract
       if (testContractId) {
-        await prisma.contract.delete({
-          where: { id: testContractId },
-        }).catch(() => {
-          // Contract might already be deleted
-        });
+        await prisma.contract
+          .delete({
+            where: { id: testContractId },
+          })
+          .catch(() => {
+            // Contract might already be deleted
+          });
       }
 
       // 3. Delete test account last
       if (testAccountId) {
-        await prisma.account.delete({
-          where: { id: testAccountId },
-        }).catch(() => {
-          // Account might already be deleted
-        });
+        await prisma.account
+          .delete({
+            where: { id: testAccountId },
+          })
+          .catch(() => {
+            // Account might already be deleted
+          });
       }
     } catch (error) {
       console.error('Cleanup error:', error);
@@ -130,7 +134,7 @@ describe('Billing API (e2e)', () => {
   describe('POST /billing/generate', () => {
     it('should generate invoice synchronously from contract', () => {
       return request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: testContractId,
         })
@@ -147,7 +151,7 @@ describe('Billing API (e2e)', () => {
 
     it('should generate invoice with custom period dates', () => {
       return request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: testContractId,
           periodStart: '2026-01-01',
@@ -162,7 +166,7 @@ describe('Billing API (e2e)', () => {
 
     it('should return 404 for non-existent contract', () => {
       return request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: '00000000-0000-0000-0000-000000000000',
         })
@@ -171,7 +175,7 @@ describe('Billing API (e2e)', () => {
 
     it('should validate required fields', () => {
       return request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({})
         .expect(400)
         .expect((res) => {
@@ -183,7 +187,7 @@ describe('Billing API (e2e)', () => {
 
     it('should validate date format for period dates', () => {
       return request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: testContractId,
           periodStart: 'invalid-date',
@@ -195,7 +199,7 @@ describe('Billing API (e2e)', () => {
   describe('POST /billing/queue', () => {
     it('should queue invoice generation job', () => {
       return request(app.getHttpServer())
-        .post('/billing/queue')
+        .post('/api/billing/queue')
         .send({
           contractId: testContractId,
         })
@@ -210,7 +214,7 @@ describe('Billing API (e2e)', () => {
 
     it('should queue job with custom period dates', () => {
       return request(app.getHttpServer())
-        .post('/billing/queue')
+        .post('/api/billing/queue')
         .send({
           contractId: testContractId,
           periodStart: '2026-04-01',
@@ -225,7 +229,7 @@ describe('Billing API (e2e)', () => {
 
     it('should validate contract ID in queued job', () => {
       return request(app.getHttpServer())
-        .post('/billing/queue')
+        .post('/api/billing/queue')
         .send({})
         .expect(400);
     });
@@ -234,7 +238,7 @@ describe('Billing API (e2e)', () => {
   describe('POST /billing/batch', () => {
     it('should queue batch billing job', () => {
       return request(app.getHttpServer())
-        .post('/billing/batch')
+        .post('/api/billing/batch')
         .send({})
         .expect(202)
         .expect((res) => {
@@ -246,7 +250,7 @@ describe('Billing API (e2e)', () => {
 
     it('should queue batch job with billing date', () => {
       return request(app.getHttpServer())
-        .post('/billing/batch')
+        .post('/api/billing/batch')
         .send({
           billingDate: '2026-01-01',
           billingPeriod: 'monthly',
@@ -259,7 +263,7 @@ describe('Billing API (e2e)', () => {
 
     it('should queue batch job with quarterly period', () => {
       return request(app.getHttpServer())
-        .post('/billing/batch')
+        .post('/api/billing/batch')
         .send({
           billingDate: '2026-01-01',
           billingPeriod: 'quarterly',
@@ -269,7 +273,7 @@ describe('Billing API (e2e)', () => {
 
     it('should queue batch job with annual period', () => {
       return request(app.getHttpServer())
-        .post('/billing/batch')
+        .post('/api/billing/batch')
         .send({
           billingDate: '2026-01-01',
           billingPeriod: 'annual',
@@ -279,7 +283,7 @@ describe('Billing API (e2e)', () => {
 
     it('should validate billing date format', () => {
       return request(app.getHttpServer())
-        .post('/billing/batch')
+        .post('/api/billing/batch')
         .send({
           billingDate: 'invalid-date',
         })
@@ -291,7 +295,7 @@ describe('Billing API (e2e)', () => {
     it('should return job status for valid job ID', async () => {
       // Queue a job first
       const queueResponse = await request(app.getHttpServer())
-        .post('/billing/queue')
+        .post('/api/billing/queue')
         .send({
           contractId: testContractId,
         });
@@ -302,7 +306,7 @@ describe('Billing API (e2e)', () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       return request(app.getHttpServer())
-        .get(`/billing/jobs/${jobId}`)
+        .get(`/api/billing/jobs/${jobId}`)
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('data');
@@ -312,7 +316,7 @@ describe('Billing API (e2e)', () => {
 
     it('should return null for non-existent job', () => {
       return request(app.getHttpServer())
-        .get('/billing/jobs/999999')
+        .get('/api/billing/jobs/999999')
         .expect(200)
         .expect((res) => {
           expect(res.body.data).toBeNull();
@@ -323,7 +327,7 @@ describe('Billing API (e2e)', () => {
   describe('GET /billing/queue/stats', () => {
     it('should return queue statistics', () => {
       return request(app.getHttpServer())
-        .get('/billing/queue/stats')
+        .get('/api/billing/queue/stats')
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('data');
@@ -339,7 +343,7 @@ describe('Billing API (e2e)', () => {
 
     it('should return valid numeric statistics', () => {
       return request(app.getHttpServer())
-        .get('/billing/queue/stats')
+        .get('/api/billing/queue/stats')
         .expect(200)
         .expect((res) => {
           expect(typeof res.body.data.waiting).toBe('number');
@@ -355,7 +359,7 @@ describe('Billing API (e2e)', () => {
   describe('Invoice Generation Verification', () => {
     it('should create invoice in database when generating synchronously', async () => {
       const response = await request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: testContractId,
         })
@@ -391,7 +395,7 @@ describe('Billing API (e2e)', () => {
 
     it('should calculate correct due date based on payment terms', async () => {
       const response = await request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: testContractId,
         });
@@ -414,13 +418,13 @@ describe('Billing API (e2e)', () => {
 
     it('should generate unique invoice numbers', async () => {
       const response1 = await request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: testContractId,
         });
 
       const response2 = await request(app.getHttpServer())
-        .post('/billing/generate')
+        .post('/api/billing/generate')
         .send({
           contractId: testContractId,
         });

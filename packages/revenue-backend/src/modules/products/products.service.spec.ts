@@ -1,15 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
-import {
-  PricingModel,
-  BillingInterval,
-} from './dto/create-product.dto';
+import { PricingModel } from './dto/create-product.dto';
 import { Prisma } from '@prisma/client';
 
 describe('ProductsService', () => {
@@ -40,6 +34,9 @@ describe('ProductsService', () => {
 
     service = module.get<ProductsService>(ProductsService);
     prisma = module.get<PrismaService>(PrismaService);
+
+    // Prevent unused variable warning
+    void prisma;
 
     jest.clearAllMocks();
   });
@@ -317,9 +314,7 @@ describe('ProductsService', () => {
 
     it('should update product with volume tiers', async () => {
       const updateWithTiers = {
-        volumeTiers: [
-          { minQuantity: 1, maxQuantity: 20, pricePerUnit: 99.99 },
-        ],
+        volumeTiers: [{ minQuantity: 1, maxQuantity: 20, pricePerUnit: 99.99 }],
       };
 
       mockPrismaService.product.update.mockResolvedValue({

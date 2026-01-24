@@ -105,13 +105,14 @@ export class HealthController {
     description: 'Service is not ready (database unavailable or unhealthy)',
   })
   async getReadiness() {
-    const startTime = Date.now();
-
     return this.health.check([
       // Database health check with response time
       async () => {
         const dbStartTime = Date.now();
-        const result = await this.prismaHealth.pingCheck('database', this.prisma);
+        const result = await this.prismaHealth.pingCheck(
+          'database',
+          this.prisma,
+        );
         const responseTime = Date.now() - dbStartTime;
 
         return {

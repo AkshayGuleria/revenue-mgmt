@@ -34,14 +34,13 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  describe('GET /health', () => {
-    it('should return health status', () => {
+  describe('GET /health/liveness', () => {
+    it('should return liveness status', () => {
       return request(app.getHttpServer())
-        .get('/health')
+        .get('/health/liveness')
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('status', 'ok');
-          expect(res.body).toHaveProperty('service', 'revenue-backend');
           expect(res.body).toHaveProperty('timestamp');
         });
     });

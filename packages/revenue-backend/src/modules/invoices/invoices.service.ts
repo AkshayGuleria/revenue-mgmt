@@ -52,9 +52,7 @@ export class InvoicesService {
       });
 
       if (!contract) {
-        throw new NotFoundException(
-          `Contract with ID ${contractId} not found`,
-        );
+        throw new NotFoundException(`Contract with ID ${contractId} not found`);
       }
 
       // Validate contract belongs to account
@@ -235,9 +233,12 @@ export class InvoicesService {
       periodStart,
       periodEnd,
       paidDate,
-      items,
+      items, // Removed in this version, kept for DTO compatibility
       ...data
     } = updateInvoiceDto;
+
+    // Note: items field is extracted but not used (DTO compatibility)
+    void items;
 
     // Validate account if being updated
     if (accountId) {
@@ -257,9 +258,7 @@ export class InvoicesService {
       });
 
       if (!contract) {
-        throw new NotFoundException(
-          `Contract with ID ${contractId} not found`,
-        );
+        throw new NotFoundException(`Contract with ID ${contractId} not found`);
       }
 
       // If both accountId and contractId are provided, validate they match

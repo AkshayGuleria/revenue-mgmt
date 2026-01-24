@@ -10,14 +10,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { ContractsService } from './contracts.service';
-import { CreateContractDto, UpdateContractDto, QueryContractsDto, ShareContractDto } from './dto';
+import {
+  CreateContractDto,
+  UpdateContractDto,
+  QueryContractsDto,
+  ShareContractDto,
+} from './dto';
 
 @ApiTags('Contracts')
 @Controller('api/contracts')
@@ -218,7 +218,10 @@ export class ContractsController {
     status: 409,
     description: 'Contract number conflict',
   })
-  update(@Param('id') id: string, @Body() updateContractDto: UpdateContractDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateContractDto: UpdateContractDto,
+  ) {
     return this.contractsService.update(id, updateContractDto);
   }
 

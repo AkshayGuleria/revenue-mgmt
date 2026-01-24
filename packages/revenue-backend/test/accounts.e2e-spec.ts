@@ -7,7 +7,10 @@ import {
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
-import { AccountType, PaymentTerms } from '../src/modules/accounts/dto/create-account.dto';
+import {
+  AccountType,
+  PaymentTerms,
+} from '../src/modules/accounts/dto/create-account.dto';
 import { AccountStatus } from '../src/modules/accounts/dto/update-account.dto';
 
 describe('Accounts API (e2e)', () => {
@@ -24,6 +27,8 @@ describe('Accounts API (e2e)', () => {
     creditLimit: 100000,
   };
 
+  // Secondary test account data (may be used in future tests)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const testAccount2 = {
     accountName: 'Test Tech Startup',
     primaryContactEmail: 'test-startup@example.com',
@@ -211,7 +216,7 @@ describe('Accounts API (e2e)', () => {
   });
 
   describe('GET /api/accounts', () => {
-    let createdAccountIds: string[] = [];
+    const createdAccountIds: string[] = [];
 
     beforeAll(async () => {
       // Create test accounts
@@ -267,7 +272,9 @@ describe('Accounts API (e2e)', () => {
         .get('/api/accounts?status[eq]=active')
         .expect(200)
         .expect((res) => {
-          expect(res.body.data.every((acc: any) => acc.status === 'active')).toBe(true);
+          expect(
+            res.body.data.every((acc: any) => acc.status === 'active'),
+          ).toBe(true);
         });
     });
 
@@ -303,7 +310,8 @@ describe('Accounts API (e2e)', () => {
         .expect((res) => {
           expect(
             res.body.data.every(
-              (acc: any) => acc.status === 'active' || acc.status === 'suspended',
+              (acc: any) =>
+                acc.status === 'active' || acc.status === 'suspended',
             ),
           ).toBe(true);
         });
@@ -354,13 +362,11 @@ describe('Accounts API (e2e)', () => {
           primaryContactEmail: 'test-list-parent@example.com',
         });
 
-      await request(app.getHttpServer())
-        .post('/api/accounts')
-        .send({
-          accountName: 'Test List Child',
-          primaryContactEmail: 'test-list-child@example.com',
-          parentAccountId: parentResponse.body.data.id,
-        });
+      await request(app.getHttpServer()).post('/api/accounts').send({
+        accountName: 'Test List Child',
+        primaryContactEmail: 'test-list-child@example.com',
+        parentAccountId: parentResponse.body.data.id,
+      });
 
       return request(app.getHttpServer())
         .get(`/api/accounts?accountName[like]=Test List Child`)
@@ -599,12 +605,10 @@ describe('Accounts API (e2e)', () => {
       const existingEmail = `test-existing-${Date.now()}@example.com`;
 
       // Create another account with unique email
-      await request(app.getHttpServer())
-        .post('/api/accounts')
-        .send({
-          accountName: 'Test Existing Email',
-          primaryContactEmail: existingEmail,
-        });
+      await request(app.getHttpServer()).post('/api/accounts').send({
+        accountName: 'Test Existing Email',
+        primaryContactEmail: existingEmail,
+      });
 
       // Try to update testAccount to use the same email
       return request(app.getHttpServer())
@@ -709,7 +713,9 @@ describe('Accounts API (e2e)', () => {
         .get(`/api/accounts/${childResponse.body.data.id}`)
         .expect(200);
 
-      expect(childDetails.body.data.parent.id).toBe(parentResponse.body.data.id);
+      expect(childDetails.body.data.parent.id).toBe(
+        parentResponse.body.data.id,
+      );
 
       // Verify parent has child in children array
       const parentDetails = await request(app.getHttpServer())
@@ -733,21 +739,17 @@ describe('Accounts API (e2e)', () => {
           primaryContactEmail: 'test-parent-kids@example.com',
         });
 
-      await request(app.getHttpServer())
-        .post('/api/accounts')
-        .send({
-          accountName: 'Test Kid 1',
-          primaryContactEmail: 'test-kid-1@example.com',
-          parentAccountId: parentResponse.body.data.id,
-        });
+      await request(app.getHttpServer()).post('/api/accounts').send({
+        accountName: 'Test Kid 1',
+        primaryContactEmail: 'test-kid-1@example.com',
+        parentAccountId: parentResponse.body.data.id,
+      });
 
-      await request(app.getHttpServer())
-        .post('/api/accounts')
-        .send({
-          accountName: 'Test Kid 2',
-          primaryContactEmail: 'test-kid-2@example.com',
-          parentAccountId: parentResponse.body.data.id,
-        });
+      await request(app.getHttpServer()).post('/api/accounts').send({
+        accountName: 'Test Kid 2',
+        primaryContactEmail: 'test-kid-2@example.com',
+        parentAccountId: parentResponse.body.data.id,
+      });
 
       const parentDetails = await request(app.getHttpServer())
         .get(`/api/accounts/${parentResponse.body.data.id}`)

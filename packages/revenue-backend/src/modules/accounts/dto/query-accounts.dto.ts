@@ -75,7 +75,8 @@ export class QueryAccountsDto extends BasePaginationDto {
 
   // NULL operator - Check for null
   @ApiPropertyOptional({
-    description: 'Filter accounts with or without parent (true = no parent, false = has parent)',
+    description:
+      'Filter accounts with or without parent (true = no parent, false = has parent)',
     example: true,
   })
   @IsOptional()

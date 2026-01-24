@@ -289,10 +289,7 @@ export class ContractsService {
   /**
    * Unshare a contract from an account
    */
-  async unshareContract(
-    contractId: string,
-    accountId: string,
-  ): Promise<void> {
+  async unshareContract(contractId: string, accountId: string): Promise<void> {
     // Validate contract exists
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
@@ -359,12 +356,7 @@ export class ContractsService {
       },
     });
 
-    return buildPaginatedListResponse(
-      shares,
-      0,
-      shares.length,
-      shares.length,
-    );
+    return buildPaginatedListResponse(shares, 0, shares.length, shares.length);
   }
 
   /**
