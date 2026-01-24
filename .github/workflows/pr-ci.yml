@@ -194,13 +194,8 @@ jobs:
           NODE_ENV: test
         run: npm run test:e2e
 
-      - name: Upload E2E test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-test-results
-          path: packages/revenue-backend/test-results/
-          retention-days: 30
+      # E2E tests don't generate test-results artifacts, only coverage does
+      # Removed artifact upload to prevent workflow warnings
 
   # =================================
   # Job 4: Coverage Check

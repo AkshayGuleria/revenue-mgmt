@@ -2,9 +2,9 @@
 
 This document tracks known security vulnerabilities in dependencies that require breaking changes to fix.
 
-## Status: 6 vulnerabilities (4 moderate, 2 high)
+## Status: 8 vulnerabilities (4 moderate, 4 high)
 
-Last updated: 2026-01-24
+Last updated: 2026-01-24 (Updated)
 
 ---
 
@@ -31,6 +31,30 @@ Last updated: 2026-01-24
 **Planned fix:**
 - Upgrade to NestJS 11 + Fastify 5.x in Phase 4 or later
 - Tracked in: [Future Issue - Framework Upgrade]
+
+### 2. glob - Command Injection via -c/--cmd (GHSA-5j98-mcp5-4vw2)
+
+**Severity:** High
+**Affected versions:** 10.2.0 - 10.4.5
+**Current version:** 7.2.3 (downgraded for compatibility)
+**Fixed in:** 11.0.0+
+
+**Why not fixed:**
+- glob 11.x has breaking changes incompatible with test-exclude@6.0.0
+- test-exclude is a dependency of Jest's coverage system
+- Upgrading glob to 11.x causes Jest coverage to fail with:
+  - `TypeError: Cannot read properties of undefined (reading 'sync')`
+  - `The "original" argument must be of type function`
+
+**Mitigation:**
+- glob is used by dev dependencies only (Jest, ESLint, NestJS CLI)
+- CLI is not exposed to production runtime
+- Command injection vulnerability requires attacker control of CLI arguments
+- Not exploitable in our CI/CD or production environment
+
+**Planned fix:**
+- Monitor for test-exclude updates that support glob 11.x
+- Consider alternative test coverage reporters if issue persists
 
 ---
 
@@ -117,7 +141,8 @@ This allows us to:
 |------|--------|----------------|-------|
 | 2026-01-24 | Initial audit | 17 total (4 low, 4 moderate, 9 high) | Baseline |
 | 2026-01-24 | Applied overrides | 6 total (4 moderate, 2 high) | Fixed 11 dev dependency vulnerabilities |
-| 2026-01-24 | Accepted known issues | 6 total (4 moderate, 2 high) | Documented for Phase 4 fix |
+| 2026-01-24 | Removed glob override | 8 total (4 moderate, 4 high) | glob 11.x broke Jest coverage, downgraded to 7.2.3 |
+| 2026-01-24 | Accepted known issues | 8 total (4 moderate, 4 high) | Documented for Phase 4 fix |
 
 ---
 
