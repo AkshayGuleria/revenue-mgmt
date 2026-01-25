@@ -14,11 +14,11 @@ We currently support security updates for the following versions:
 This project uses comprehensive automated security scanning:
 
 ### Continuous Monitoring
-- **npm audit**: Daily scans for known vulnerabilities in dependencies
-- **CodeQL**: Static code analysis for security issues (SQL injection, XSS, etc.)
-- **Secrets scanning**: TruffleHog scans for leaked credentials in commits
-- **Dependency review**: Automated checks for new dependency vulnerabilities in PRs
-- **SBOM generation**: Software Bill of Materials for compliance and audit trail
+- **npm audit**: Daily scans for known vulnerabilities in dependencies ✅
+- **CodeQL**: Static code analysis for security issues (SQL injection, XSS, etc.) ✅
+- **SBOM generation**: Software Bill of Materials for compliance and audit trail ✅
+- **Secrets scanning**: TruffleHog scans for leaked credentials in commits (disabled)
+- **Dependency review**: Automated checks for new dependency vulnerabilities in PRs (disabled)
 
 ### Coverage
 - Production dependencies: Fails on moderate+ severity vulnerabilities
@@ -137,4 +137,6 @@ This project aims to comply with:
 
 ---
 
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-01-25
+
+**Note:** Security scanning jobs are dynamically configured. Currently active: npm audit, CodeQL, SBOM generation. Dependency review and secrets scanning can be enabled by uncommenting their job definitions.
