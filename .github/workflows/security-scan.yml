@@ -212,7 +212,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [npm-audit, codeql-analysis, dependency-review, secrets-scan, sbom-generation]
+    needs: [npm-audit, codeql-analysis, sbom-generation]
     if: always()
     permissions:
       contents: read
@@ -226,8 +226,8 @@ jobs:
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| npm Audit | ${{ needs.npm-audit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| CodeQL Analysis | ${{ needs.codeql-analysis.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dependency Review | ${{ needs.dependency-review.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Secrets Scan | ${{ needs.secrets-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          # echo "| Dependency Review | ${{ needs.dependency-review.result }} |" >> $GITHUB_STEP_SUMMARY
+          # echo "| Secrets Scan | ${{ needs.secrets-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| SBOM Generation | ${{ needs.sbom-generation.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
@@ -238,16 +238,16 @@ jobs:
           # Count successes and track failures
           [[ "${{ needs.npm-audit.result }}" == "success" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- npm Audit: ${{ needs.npm-audit.result }}"
           [[ "${{ needs.codeql-analysis.result }}" == "success" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- CodeQL Analysis: ${{ needs.codeql-analysis.result }}"
-          [[ "${{ needs.dependency-review.result }}" == "success" || "${{ needs.dependency-review.result }}" == "skipped" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- Dependency Review: ${{ needs.dependency-review.result }}"
-          [[ "${{ needs.secrets-scan.result }}" == "success" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- Secrets Scan: ${{ needs.secrets-scan.result }}"
+          # [[ "${{ needs.dependency-review.result }}" == "success" || "${{ needs.dependency-review.result }}" == "skipped" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- Dependency Review: ${{ needs.dependency-review.result }}"
+          # [[ "${{ needs.secrets-scan.result }}" == "success" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- Secrets Scan: ${{ needs.secrets-scan.result }}"
           [[ "${{ needs.sbom-generation.result }}" == "success" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- SBOM Generation: ${{ needs.sbom-generation.result }}"
 
           if [[ $SUCCESS_COUNT -eq 5 ]]; then
             echo "### ✅ All security checks passed!" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ needs.dependency-review.result }}" == "skipped" ]]; then
-              echo "**Note:** Dependency review only runs on pull requests." >> $GITHUB_STEP_SUMMARY
-            fi
+            # if [[ "${{ needs.dependency-review.result }}" == "skipped" ]]; then
+            #   echo "**Note:** Dependency review only runs on pull requests." >> $GITHUB_STEP_SUMMARY
+            # fi
             exit 0
           else
             echo "### ⚠️  Some security checks failed" >> $GITHUB_STEP_SUMMARY
