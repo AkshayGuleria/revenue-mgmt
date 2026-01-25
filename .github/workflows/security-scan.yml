@@ -232,6 +232,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Check if all required jobs succeeded or were skipped (skipped = not run on this event type)
+          ACTIVE_JOBS=("npm-audit" "codeql-analysis" "sbom-generation")
+          TOTAL_JOBS=${#ACTIVE_JOBS[@]}
           SUCCESS_COUNT=0
           FAILED_JOBS=""
 
@@ -242,7 +244,7 @@ jobs:
           # [[ "${{ needs.secrets-scan.result }}" == "success" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- Secrets Scan: ${{ needs.secrets-scan.result }}"
           [[ "${{ needs.sbom-generation.result }}" == "success" ]] && ((SUCCESS_COUNT++)) || FAILED_JOBS="$FAILED_JOBS\n- SBOM Generation: ${{ needs.sbom-generation.result }}"
 
-          if [[ $SUCCESS_COUNT -eq 5 ]]; then
+          if [[ $SUCCESS_COUNT -eq $TOTAL_JOBS ]]; then
             echo "### ✅ All security checks passed!" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             # if [[ "${{ needs.dependency-review.result }}" == "skipped" ]]; then
