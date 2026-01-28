@@ -82,20 +82,26 @@ export function DataTable<T>({
   return (
     <div className="space-y-6">
       {/* Table */}
-      <div className="rounded-lg border shadow-sm overflow-hidden bg-white">
+      <div className="rounded-lg border-0 shadow-lg overflow-hidden bg-white">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50 hover:bg-gray-50">
+            <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-100 hover:to-gray-50 border-b-2 border-gray-200">
               {columns.map((column) => (
-                <TableHead key={column.key} className="font-semibold text-gray-700">{column.header}</TableHead>
+                <TableHead key={column.key} className="font-bold text-gray-800 text-sm uppercase tracking-wide">{column.header}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((item, index) => (
-              <TableRow key={index} className="hover:bg-blue-50 transition-colors">
+              <TableRow
+                key={index}
+                className={`
+                  hover:bg-blue-50 transition-all duration-200 hover:shadow-sm
+                  ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                `}
+              >
                 {columns.map((column) => (
-                  <TableCell key={column.key} className="text-gray-900">{column.cell(item)}</TableCell>
+                  <TableCell key={column.key} className="text-gray-900 font-medium">{column.cell(item)}</TableCell>
                 ))}
               </TableRow>
             ))}
@@ -105,33 +111,42 @@ export function DataTable<T>({
 
       {/* Pagination */}
       {paging && (paging.total !== null || paging.hasNext !== null) && (
-        <div className="flex items-center justify-between px-2 py-4 bg-gray-50 rounded-b-lg border-t">
-          <div className="text-sm font-medium text-gray-600">
-            {total > 0 && (
-              <span>
-                Showing <span className="font-semibold text-gray-900">{currentOffset + 1}</span> to{" "}
-                <span className="font-semibold text-gray-900">{Math.min(currentOffset + limit, total)}</span> of{" "}
-                <span className="font-semibold text-gray-900">{total}</span> results
-              </span>
-            )}
+        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-blue-500 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">{Math.ceil((currentOffset + 1) / limit)}</span>
+            </div>
+            <div className="text-sm">
+              {total > 0 && (
+                <div>
+                  <span className="font-semibold text-gray-900">
+                    {currentOffset + 1} - {Math.min(currentOffset + limit, total)}
+                  </span>
+                  <span className="text-gray-600"> of </span>
+                  <span className="font-semibold text-gray-900">{total}</span>
+                  <span className="text-gray-600"> results</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePrevPage}
               disabled={!hasPrevPage}
-              className="shadow-sm hover:bg-white disabled:opacity-50"
+              className="shadow-sm hover:bg-white hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Previous
             </Button>
+            <div className="h-8 w-px bg-gray-300" />
             <Button
               variant="outline"
               size="sm"
               onClick={handleNextPage}
               disabled={!hasNextPage}
-              className="shadow-sm hover:bg-white disabled:opacity-50"
+              className="shadow-sm hover:bg-white hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200"
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />

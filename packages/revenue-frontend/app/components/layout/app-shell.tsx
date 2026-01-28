@@ -32,7 +32,7 @@ export function AppShell({ children }: AppShellProps) {
         <Header />
 
         {/* Page Content */}
-        <main className="container mx-auto p-8">
+        <main className="container mx-auto p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {children}
         </main>
       </div>

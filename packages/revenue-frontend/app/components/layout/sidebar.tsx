@@ -71,10 +71,10 @@ export function Sidebar() {
               key={item.name}
               to={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
-                  : "text-gray-600 hover:bg-blue-50 hover:text-blue-600",
+                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md scale-105"
+                  : "text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:scale-105 active:scale-95",
                 sidebarCollapsed && "justify-center"
               )}
               title={sidebarCollapsed ? item.name : undefined}
