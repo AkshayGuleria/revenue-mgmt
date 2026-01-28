@@ -43,8 +43,8 @@ const accountFormSchema = z.object({
   billingContactPhone: z.string().optional(),
 
   // Billing address
-  billingAddress1: z.string().optional(),
-  billingAddress2: z.string().optional(),
+  billingAddressLine1: z.string().optional(),
+  billingAddressLine2: z.string().optional(),
   billingCity: z.string().optional(),
   billingState: z.string().optional(),
   billingPostalCode: z.string().optional(),
@@ -91,8 +91,8 @@ export function AccountForm({
       billingContactName: account?.billingContactName || "",
       billingContactEmail: account?.billingContactEmail || "",
       billingContactPhone: account?.billingContactPhone || "",
-      billingAddress1: account?.billingAddress1 || "",
-      billingAddress2: account?.billingAddress2 || "",
+      billingAddressLine1: account?.billingAddressLine1 || "",
+      billingAddressLine2: account?.billingAddressLine2 || "",
       billingCity: account?.billingCity || "",
       billingState: account?.billingState || "",
       billingPostalCode: account?.billingPostalCode || "",
@@ -420,7 +420,7 @@ export function AccountForm({
 
           <FormField
             control={form.control}
-            name="billingAddress1"
+            name="billingAddressLine1"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Address Line 1</FormLabel>
@@ -434,7 +434,7 @@ export function AccountForm({
 
           <FormField
             control={form.control}
-            name="billingAddress2"
+            name="billingAddressLine2"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Address Line 2</FormLabel>

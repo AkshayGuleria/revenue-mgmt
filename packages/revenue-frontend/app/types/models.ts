@@ -86,8 +86,8 @@ export interface Account {
   billingContactPhone?: string;
 
   // Billing address
-  billingAddress1?: string;
-  billingAddress2?: string;
+  billingAddressLine1?: string;
+  billingAddressLine2?: string;
   billingCity?: string;
   billingState?: string;
   billingPostalCode?: string;
@@ -323,8 +323,8 @@ export interface CreateAccountDto {
   billingContactEmail?: string;
   billingContactPhone?: string;
 
-  billingAddress1?: string;
-  billingAddress2?: string;
+  billingAddressLine1?: string;
+  billingAddressLine2?: string;
   billingCity?: string;
   billingState?: string;
   billingPostalCode?: string;

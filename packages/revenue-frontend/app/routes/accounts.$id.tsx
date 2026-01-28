@@ -147,7 +147,7 @@ export default function AccountDetailsRoute() {
           </Card>
 
           {/* Billing Information */}
-          {(account.billingContactName || account.billingAddress1) && (
+          {(account.billingContactName || account.billingAddressLine1) && (
             <Card>
               <CardHeader>
                 <CardTitle>Billing Information</CardTitle>
@@ -171,14 +171,14 @@ export default function AccountDetailsRoute() {
                     )}
                   </div>
                 )}
-                {account.billingAddress1 && (
+                {account.billingAddressLine1 && (
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
                       Billing Address
                     </p>
-                    <p className="text-sm">{account.billingAddress1}</p>
-                    {account.billingAddress2 && (
-                      <p className="text-sm">{account.billingAddress2}</p>
+                    <p className="text-sm">{account.billingAddressLine1}</p>
+                    {account.billingAddressLine2 && (
+                      <p className="text-sm">{account.billingAddressLine2}</p>
                     )}
                     <p className="text-sm">
                       {[
