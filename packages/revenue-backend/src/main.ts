@@ -25,7 +25,12 @@ async function bootstrap() {
   );
 
   // CORS configuration
-  app.enableCors();
+  app.enableCors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  });
 
   // Serve static files from public directory
   await app.register(fastifyStatic, {

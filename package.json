@@ -1,0 +1,28 @@
+{
+  "name": "revenue-mgmt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "B2B Enterprise Revenue Management System",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=packages/revenue-backend",
+    "dev:frontend": "npm run dev --workspace=packages/revenue-frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"backend,frontend\" --prefix-colors \"blue,magenta\"",
+    "build:backend": "npm run build --workspace=packages/revenue-backend",
+    "build:frontend": "npm run build --workspace=packages/revenue-frontend",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test:backend": "npm run test --workspace=packages/revenue-backend",
+    "start:backend": "npm run start --workspace=packages/revenue-backend",
+    "start:frontend": "npm run start --workspace=packages/revenue-frontend",
+    "start:all": "npm run build && concurrently \"npm run start:backend\" \"npm run start:frontend\" --names \"backend,frontend\" --prefix-colors \"blue,magenta\"",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
