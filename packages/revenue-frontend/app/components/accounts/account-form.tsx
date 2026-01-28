@@ -35,7 +35,7 @@ const accountFormSchema = z.object({
   primaryContactEmail: z.string().email("Invalid email address"),
   accountType: z.nativeEnum(AccountType),
   status: z.nativeEnum(AccountStatus).optional(),
-  parentAccountId: z.string().optional(),
+  parentAccountId: z.string().optional().or(z.literal("")),
 
   // Billing contact
   billingContactName: z.string().optional(),
@@ -87,7 +87,7 @@ export function AccountForm({
       primaryContactEmail: account?.primaryContactEmail || "",
       accountType: account?.accountType || AccountType.ENTERPRISE,
       status: account?.status || AccountStatus.ACTIVE,
-      parentAccountId: account?.parentAccountId || "",
+      parentAccountId: account?.parentAccountId || undefined,
       billingContactName: account?.billingContactName || "",
       billingContactEmail: account?.billingContactEmail || "",
       billingContactPhone: account?.billingContactPhone || "",
@@ -107,6 +107,7 @@ export function AccountForm({
   const handleSubmit = (values: AccountFormValues) => {
     const data: CreateAccountDto | UpdateAccountDto = {
       ...values,
+      parentAccountId: values.parentAccountId || undefined,
       billingContactEmail: values.billingContactEmail || undefined,
     };
     onSubmit(data);
