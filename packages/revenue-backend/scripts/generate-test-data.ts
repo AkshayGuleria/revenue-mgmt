@@ -644,7 +644,7 @@ class DataGenerator {
     try {
       // Health check
       this.log('🏥 Checking API health...');
-      await this.client.get('/health');
+      await this.client.get('/health/liveness');
       this.success('API is healthy');
 
       // Generate data
