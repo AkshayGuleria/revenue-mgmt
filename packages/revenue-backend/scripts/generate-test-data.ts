@@ -202,7 +202,7 @@ class DataGenerator {
     for (const product of products) {
       try {
         const response = await this.client.post('/api/products', product);
-        const productId = response.data.data.productId;
+        const productId = response.data.data.id;
         this.generatedIds.products.push(productId);
         this.success(`Created product: ${product.name} (ID: ${productId})`);
       } catch (error) {
@@ -303,7 +303,7 @@ class DataGenerator {
     for (const parent of parentCompanies) {
       try {
         const response = await this.client.post('/api/accounts', parent);
-        const accountId = response.data.data.accountId;
+        const accountId = response.data.data.id;
         this.generatedIds.accounts.push(accountId);
         parentIds.push(accountId);
         this.success(`Created parent account: ${parent.accountName} (ID: ${accountId})`);
@@ -402,7 +402,7 @@ class DataGenerator {
     for (const subsidiary of subsidiaries) {
       try {
         const response = await this.client.post('/api/accounts', subsidiary);
-        const accountId = response.data.data.accountId;
+        const accountId = response.data.data.id;
         this.generatedIds.accounts.push(accountId);
         level2Ids.push(accountId);
         this.success(`Created subsidiary: ${subsidiary.accountName} (ID: ${accountId})`);
@@ -477,7 +477,7 @@ class DataGenerator {
     for (const dept of departments) {
       try {
         const response = await this.client.post('/api/accounts', dept);
-        const accountId = response.data.data.accountId;
+        const accountId = response.data.data.id;
         this.generatedIds.accounts.push(accountId);
         this.success(`Created department: ${dept.accountName} (ID: ${accountId})`);
       } catch (error) {
@@ -522,7 +522,7 @@ class DataGenerator {
     for (const account of standaloneAccounts) {
       try {
         const response = await this.client.post('/api/accounts', account);
-        const accountId = response.data.data.accountId;
+        const accountId = response.data.data.id;
         this.generatedIds.accounts.push(accountId);
         this.success(`Created standalone account: ${account.accountName} (ID: ${accountId})`);
       } catch (error) {
@@ -607,7 +607,7 @@ class DataGenerator {
 
         try {
           const response = await this.client.post('/api/contracts', contract);
-          const contractId = response.data.data.contractId;
+          const contractId = response.data.data.id;
           this.generatedIds.contracts.push(contractId);
           this.success(`Created contract: ${contract.contractNumber} for account ${accountId}`);
           contractCounter++;
