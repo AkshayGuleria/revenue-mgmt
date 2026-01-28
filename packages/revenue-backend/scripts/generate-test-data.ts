@@ -620,6 +620,45 @@ class DataGenerator {
     this.log(`✅ Created ${this.generatedIds.contracts.length} contracts`);
   }
 
+  // Clean existing data
+  async clean() {
+    this.log('🧹 Cleaning existing data...');
+
+    const endpoints = [
+      { url: '/api/contracts', name: 'contracts' },
+      { url: '/api/accounts', name: 'accounts' },
+      { url: '/api/products', name: 'products' },
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        this.log(`Fetching all ${endpoint.name}...`);
+        const response = await this.client.get(endpoint.url);
+        const items = response.data.data || [];
+
+        if (!Array.isArray(items)) {
+          this.log(`No ${endpoint.name} found to delete`);
+          continue;
+        }
+
+        for (const item of items) {
+          try {
+            await this.client.delete(`${endpoint.url}/${item.id}`);
+            this.success(`Deleted ${endpoint.name} with ID: ${item.id}`);
+          } catch (error) {
+            this.error(`Failed to delete ${endpoint.name} ${item.id}`, error);
+          }
+        }
+
+        this.success(`Cleaned all ${endpoint.name}`);
+      } catch (error) {
+        this.error(`Failed to fetch ${endpoint.name}`, error);
+      }
+    }
+
+    this.success('Data cleanup completed');
+  }
+
   // Summary Report
   printSummary() {
     console.log('\n' + '='.repeat(60));
@@ -646,6 +685,11 @@ class DataGenerator {
       this.log('🏥 Checking API health...');
       await this.client.get('/health/liveness');
       this.success('API is healthy');
+
+      // Clean existing data if requested
+      if (CLEAN_FIRST) {
+        await this.clean();
+      }
 
       // Generate data
       await this.generateProducts();
