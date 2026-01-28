@@ -95,7 +95,7 @@ export function DataTable<T>({
             {data.map((item, index) => (
               <TableRow key={index} className="hover:bg-blue-50 transition-colors">
                 {columns.map((column) => (
-                  <TableCell key={column.key}>{column.cell(item)}</TableCell>
+                  <TableCell key={column.key} className="text-gray-900">{column.cell(item)}</TableCell>
                 ))}
               </TableRow>
             ))}

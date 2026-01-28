@@ -34,7 +34,7 @@ export default function ContractsListRoute() {
       cell: (contract) => (
         <Link
           to={`/contracts/${contract.id}`}
-          className="font-medium hover:underline"
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
         >
           {contract.contractNumber}
         </Link>
@@ -46,7 +46,7 @@ export default function ContractsListRoute() {
       cell: (contract) => (
         <Link
           to={`/accounts/${contract.accountId}`}
-          className="text-sm hover:underline"
+          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
         >
           {contract.account?.accountName || contract.accountId}
         </Link>

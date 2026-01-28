@@ -32,7 +32,7 @@ export default function ProductsListRoute() {
       cell: (product) => (
         <Link
           to={`/products/${product.id}`}
-          className="font-medium hover:underline"
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
         >
           {product.name}
         </Link>

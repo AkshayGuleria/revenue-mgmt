@@ -33,7 +33,7 @@ export default function AccountsListRoute() {
       cell: (account) => (
         <Link
           to={`/accounts/${account.id}`}
-          className="font-medium hover:underline"
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
         >
           {account.accountName}
         </Link>

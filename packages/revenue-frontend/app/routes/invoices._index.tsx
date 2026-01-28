@@ -33,7 +33,7 @@ export default function InvoicesListRoute() {
       cell: (invoice) => (
         <Link
           to={`/invoices/${invoice.id}`}
-          className="font-medium hover:underline"
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
         >
           {invoice.invoiceNumber}
         </Link>
@@ -45,7 +45,7 @@ export default function InvoicesListRoute() {
       cell: (invoice) => (
         <Link
           to={`/accounts/${invoice.accountId}`}
-          className="text-sm hover:underline"
+          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
         >
           {invoice.account?.accountName || invoice.accountId}
         </Link>
