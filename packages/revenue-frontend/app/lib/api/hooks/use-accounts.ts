@@ -137,6 +137,34 @@ export function useUpdateAccount(id: string) {
       );
       return response;
     },
+    // Optimistic update
+    onMutate: async (newData) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.accounts.detail(id) });
+
+      // Snapshot previous value
+      const previousAccount = queryClient.getQueryData(queryKeys.accounts.detail(id));
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKeys.accounts.detail(id), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...newData,
+          },
+        };
+      });
+
+      return { previousAccount };
+    },
+    onError: (_err, _newData, context) => {
+      // Rollback on error
+      if (context?.previousAccount) {
+        queryClient.setQueryData(queryKeys.accounts.detail(id), context.previousAccount);
+      }
+    },
     onSuccess: () => {
       // Invalidate specific account and list queries
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts.detail(id) });

@@ -71,7 +71,36 @@ export function useUpdateProduct(id: string) {
       );
       return response;
     },
+    // Optimistic update
+    onMutate: async (newData) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.products.detail(id) });
+
+      // Snapshot previous value
+      const previousProduct = queryClient.getQueryData(queryKeys.products.detail(id));
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKeys.products.detail(id), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...newData,
+          },
+        };
+      });
+
+      return { previousProduct };
+    },
+    onError: (_err, _newData, context) => {
+      // Rollback on error
+      if (context?.previousProduct) {
+        queryClient.setQueryData(queryKeys.products.detail(id), context.previousProduct);
+      }
+    },
     onSuccess: () => {
+      // Invalidate specific product and list queries
       queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.lists() });
     },

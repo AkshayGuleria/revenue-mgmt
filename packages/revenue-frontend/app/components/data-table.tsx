@@ -44,12 +44,35 @@ export function DataTable<T>({
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <div className="rounded-lg border-0 shadow-lg overflow-hidden bg-white animate-pulse">
+        {/* Table Header Skeleton */}
+        <div className="bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-200 p-4">
+          <div className="grid grid-cols-6 gap-4">
+            {columns.map((col, idx) => (
+              <Skeleton key={idx} className="h-5 w-full bg-gray-300" />
+            ))}
+          </div>
+        </div>
+        {/* Table Body Skeleton */}
+        <div className="divide-y divide-gray-100">
+          {[1, 2, 3, 4, 5].map((row) => (
+            <div key={row} className="p-4">
+              <div className="grid grid-cols-6 gap-4 items-center">
+                {columns.map((col, idx) => (
+                  <Skeleton key={idx} className="h-6 w-full bg-gray-200" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Pagination Skeleton */}
+        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t">
+          <Skeleton className="h-10 w-32 bg-gray-300" />
+          <div className="flex gap-3">
+            <Skeleton className="h-9 w-24 bg-gray-300" />
+            <Skeleton className="h-9 w-24 bg-gray-300" />
+          </div>
+        </div>
       </div>
     );
   }

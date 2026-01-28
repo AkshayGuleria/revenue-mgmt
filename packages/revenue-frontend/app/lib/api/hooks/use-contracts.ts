@@ -105,7 +105,36 @@ export function useUpdateContract(id: string) {
       );
       return response;
     },
+    // Optimistic update
+    onMutate: async (newData) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.contracts.detail(id) });
+
+      // Snapshot previous value
+      const previousContract = queryClient.getQueryData(queryKeys.contracts.detail(id));
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKeys.contracts.detail(id), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...newData,
+          },
+        };
+      });
+
+      return { previousContract };
+    },
+    onError: (_err, _newData, context) => {
+      // Rollback on error
+      if (context?.previousContract) {
+        queryClient.setQueryData(queryKeys.contracts.detail(id), context.previousContract);
+      }
+    },
     onSuccess: () => {
+      // Invalidate specific contract and list queries
       queryClient.invalidateQueries({ queryKey: queryKeys.contracts.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.contracts.lists() });
     },

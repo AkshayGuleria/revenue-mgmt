@@ -72,7 +72,36 @@ export function useUpdateInvoice(id: string) {
       );
       return response;
     },
+    // Optimistic update
+    onMutate: async (newData) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.invoices.detail(id) });
+
+      // Snapshot previous value
+      const previousInvoice = queryClient.getQueryData(queryKeys.invoices.detail(id));
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKeys.invoices.detail(id), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...newData,
+          },
+        };
+      });
+
+      return { previousInvoice };
+    },
+    onError: (_err, _newData, context) => {
+      // Rollback on error
+      if (context?.previousInvoice) {
+        queryClient.setQueryData(queryKeys.invoices.detail(id), context.previousInvoice);
+      }
+    },
     onSuccess: () => {
+      // Invalidate specific invoice and list queries
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.lists() });
     },
