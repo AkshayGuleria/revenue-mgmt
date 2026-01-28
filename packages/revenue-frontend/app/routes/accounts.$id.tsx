@@ -4,7 +4,7 @@
  */
 
 import { useParams, Link } from "react-router";
-import { Edit, Building, CreditCard } from "lucide-react";
+import { Edit, Building, CreditCard, Mail, Phone, MapPin, DollarSign, Calendar, User } from "lucide-react";
 import { AppShell } from "~/components/layout/app-shell";
 import { PageHeader } from "~/components/layout/page-header";
 import { Button } from "~/components/ui/button";
@@ -74,73 +74,120 @@ export default function AccountDetailsRoute() {
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details" className="space-y-4">
+        <TabsContent value="details" className="space-y-6">
           {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600" />
+            <CardHeader className="bg-gradient-to-br from-blue-50 to-indigo-50">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-500 flex items-center justify-center">
+                  <Building className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-900">Basic Information</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Account Type
-                </p>
-                <p className="text-sm capitalize">{account.accountType}</p>
+            <CardContent className="grid grid-cols-2 gap-6 p-6">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Building className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">
+                    Account Type
+                  </p>
+                  <p className="text-base font-medium text-gray-900 capitalize">{account.accountType}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Status
-                </p>
-                <StatusBadge
-                  status={account.status}
-                  color={colorMap[account.status]}
-                />
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Calendar className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">
+                    Status
+                  </p>
+                  <StatusBadge
+                    status={account.status}
+                    color={colorMap[account.status]}
+                  />
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Primary Contact
-                </p>
-                <p className="text-sm">{account.primaryContactEmail}</p>
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Mail className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">
+                    Primary Contact
+                  </p>
+                  <p className="text-base font-medium text-gray-900">{account.primaryContactEmail}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Currency
-                </p>
-                <p className="text-sm">{account.currency}</p>
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <DollarSign className="h-4 w-4 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">
+                    Currency
+                  </p>
+                  <p className="text-base font-medium text-gray-900">{account.currency}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Financial Terms */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Terms</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Payment Terms
-                </p>
-                <p className="text-sm">
-                  {account.paymentTerms.replace(/_/g, " ").toUpperCase()}
-                </p>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-2 bg-gradient-to-r from-green-500 to-emerald-600" />
+            <CardHeader className="bg-gradient-to-br from-green-50 to-emerald-50">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-green-500 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-900">Financial Terms</CardTitle>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Credit Limit
-                </p>
-                <p className="text-sm">
-                  {account.creditLimit
-                    ? `$${account.creditLimit.toLocaleString()}`
-                    : "Not set"}
-                </p>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-6 p-6">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Calendar className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">
+                    Payment Terms
+                  </p>
+                  <p className="text-base font-medium text-gray-900">
+                    {account.paymentTerms.replace(/_/g, " ").toUpperCase()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-1">
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">
+                    Credit Limit
+                  </p>
+                  <p className="text-base font-medium text-gray-900">
+                    {account.creditLimit
+                      ? `$${account.creditLimit.toLocaleString()}`
+                      : "Not set"}
+                  </p>
+                </div>
               </div>
               {account.taxId && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Tax ID
-                  </p>
-                  <p className="text-sm">{account.taxId}</p>
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0 mt-1">
+                    <CreditCard className="h-4 w-4 text-teal-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">
+                      Tax ID
+                    </p>
+                    <p className="text-base font-medium text-gray-900">{account.taxId}</p>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -148,50 +195,70 @@ export default function AccountDetailsRoute() {
 
           {/* Billing Information */}
           {(account.billingContactName || account.billingAddressLine1) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing Information</CardTitle>
+            <Card className="overflow-hidden border-0 shadow-lg">
+              <div className="h-2 bg-gradient-to-r from-purple-500 to-pink-600" />
+              <CardHeader className="bg-gradient-to-br from-purple-50 to-pink-50">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-purple-500 flex items-center justify-center">
+                    <CreditCard className="h-6 w-6 text-white" />
+                  </div>
+                  <CardTitle className="text-xl font-bold text-gray-900">Billing Information</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6 p-6">
                 {account.billingContactName && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Billing Contact
-                    </p>
-                    <p className="text-sm">{account.billingContactName}</p>
-                    {account.billingContactEmail && (
-                      <p className="text-sm text-muted-foreground">
-                        {account.billingContactEmail}
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0 mt-1">
+                      <User className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-gray-600">
+                        Billing Contact
                       </p>
-                    )}
-                    {account.billingContactPhone && (
-                      <p className="text-sm text-muted-foreground">
-                        {account.billingContactPhone}
-                      </p>
-                    )}
+                      <p className="text-base font-medium text-gray-900">{account.billingContactName}</p>
+                      {account.billingContactEmail && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Mail className="h-4 w-4" />
+                          <span>{account.billingContactEmail}</span>
+                        </div>
+                      )}
+                      {account.billingContactPhone && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Phone className="h-4 w-4" />
+                          <span>{account.billingContactPhone}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {account.billingAddressLine1 && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Billing Address
-                    </p>
-                    <p className="text-sm">{account.billingAddressLine1}</p>
-                    {account.billingAddressLine2 && (
-                      <p className="text-sm">{account.billingAddressLine2}</p>
-                    )}
-                    <p className="text-sm">
-                      {[
-                        account.billingCity,
-                        account.billingState,
-                        account.billingPostalCode,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </p>
-                    {account.billingCountry && (
-                      <p className="text-sm">{account.billingCountry}</p>
-                    )}
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-pink-100 flex items-center justify-center flex-shrink-0 mt-1">
+                      <MapPin className="h-4 w-4 text-pink-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-600 mb-2">
+                        Billing Address
+                      </p>
+                      <div className="text-base text-gray-900 space-y-1">
+                        <p>{account.billingAddressLine1}</p>
+                        {account.billingAddressLine2 && (
+                          <p>{account.billingAddressLine2}</p>
+                        )}
+                        <p>
+                          {[
+                            account.billingCity,
+                            account.billingState,
+                            account.billingPostalCode,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </p>
+                        {account.billingCountry && (
+                          <p>{account.billingCountry}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -200,48 +267,62 @@ export default function AccountDetailsRoute() {
         </TabsContent>
 
         <TabsContent value="hierarchy">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Hierarchy</CardTitle>
-              <CardDescription>
-                Parent and child account relationships
-              </CardDescription>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-2 bg-gradient-to-r from-amber-500 to-orange-600" />
+            <CardHeader className="bg-gradient-to-br from-amber-50 to-orange-50">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-amber-500 flex items-center justify-center">
+                  <Building className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-900">Account Hierarchy</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Parent and child account relationships
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               {account.parentAccountId ? (
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                <div className="mb-6 p-4 rounded-lg bg-blue-50 border-2 border-blue-200">
+                  <p className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                    <Building className="h-4 w-4" />
                     Parent Account
                   </p>
                   <Link
                     to={`/accounts/${account.parentAccountId}`}
-                    className="text-sm hover:underline"
+                    className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
                   >
-                    View Parent Account
+                    View Parent Account →
                   </Link>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground mb-4">
-                  This is a root account (no parent)
-                </p>
+                <div className="mb-6 p-4 rounded-lg bg-gray-50 border-2 border-gray-200">
+                  <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    This is a root account (no parent)
+                  </p>
+                </div>
               )}
 
               {account.children && account.children.length > 0 ? (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                  <p className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Building className="h-5 w-5 text-amber-600" />
                     Child Accounts ({account.children.length})
                   </p>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {account.children.map((child: any) => (
                       <Link
                         key={child.id}
                         to={`/accounts/${child.id}`}
-                        className="block p-3 border rounded-lg hover:bg-accent"
+                        className="block p-4 border-2 rounded-lg hover:border-amber-300 hover:bg-amber-50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                       >
-                        <p className="text-sm font-medium">
+                        <p className="text-base font-bold text-gray-900 mb-1">
                           {child.accountName}
                         </p>
-                        <p className="text-xs text-muted-foreground capitalize">
+                        <p className="text-sm text-gray-600 capitalize flex items-center gap-2">
+                          <Building className="h-3 w-3" />
                           {child.accountType}
                         </p>
                       </Link>
@@ -249,15 +330,17 @@ export default function AccountDetailsRoute() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No child accounts
-                </p>
+                <div className="p-4 rounded-lg bg-gray-50 border-2 border-dashed border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    No child accounts
+                  </p>
+                </div>
               )}
 
               <Link to={`/accounts/${accountId}/hierarchy`}>
-                <Button variant="outline" className="mt-4">
+                <Button variant="outline" className="mt-6 hover:scale-105 active:scale-95 transition-transform duration-200 w-full sm:w-auto">
                   <Building className="mr-2 h-4 w-4" />
-                  View Full Hierarchy
+                  View Full Hierarchy Tree
                 </Button>
               </Link>
             </CardContent>
@@ -265,29 +348,67 @@ export default function AccountDetailsRoute() {
         </TabsContent>
 
         <TabsContent value="contracts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contracts</CardTitle>
-              <CardDescription>Active and historical contracts</CardDescription>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-2 bg-gradient-to-r from-green-500 to-emerald-600" />
+            <CardHeader className="bg-gradient-to-br from-green-50 to-emerald-50">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-green-500 flex items-center justify-center">
+                  <Edit className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-900">Contracts</CardTitle>
+                  <CardDescription className="text-gray-600">Active and historical contracts</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Contract list will be displayed here
-              </p>
+            <CardContent className="p-6">
+              <div className="text-center py-12">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                  <Edit className="h-10 w-10 text-gray-400" />
+                </div>
+                <p className="text-lg font-semibold text-gray-900 mb-2">No Contracts Yet</p>
+                <p className="text-sm text-gray-600 mb-6">
+                  Contract list will be displayed here once created
+                </p>
+                <Link to="/contracts/new">
+                  <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
+                    Create First Contract
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="invoices">
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoices</CardTitle>
-              <CardDescription>All invoices for this account</CardDescription>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600" />
+            <CardHeader className="bg-gradient-to-br from-blue-50 to-indigo-50">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-500 flex items-center justify-center">
+                  <CreditCard className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-900">Invoices</CardTitle>
+                  <CardDescription className="text-gray-600">All invoices for this account</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Invoice list will be displayed here
-              </p>
+            <CardContent className="p-6">
+              <div className="text-center py-12">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                  <CreditCard className="h-10 w-10 text-gray-400" />
+                </div>
+                <p className="text-lg font-semibold text-gray-900 mb-2">No Invoices Yet</p>
+                <p className="text-sm text-gray-600 mb-6">
+                  Invoice list will be displayed here once generated
+                </p>
+                <Link to="/invoices/new">
+                  <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
+                    Create First Invoice
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
