@@ -1,0 +1,173 @@
+/**
+ * Contracts API Hooks
+ * TanStack Query hooks for contract operations
+ */
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "../client";
+import { queryKeys } from "../query-client";
+import type {
+  Contract,
+  CreateContractDto,
+  UpdateContractDto,
+  ContractShare,
+  ShareContractDto,
+} from "~/types/models";
+import type { QueryParams } from "~/types/api";
+
+/**
+ * Fetch list of contracts with filtering and pagination
+ */
+export function useContracts(params?: QueryParams) {
+  return useQuery({
+    queryKey: queryKeys.contracts.list(params),
+    queryFn: async () => {
+      const response = await apiClient.get<Contract[]>("/api/contracts", params);
+      return response;
+    },
+  });
+}
+
+/**
+ * Fetch single contract by ID
+ */
+export function useContract(id: string) {
+  return useQuery({
+    queryKey: queryKeys.contracts.detail(id),
+    queryFn: async () => {
+      const response = await apiClient.get<Contract>(`/api/contracts/${id}`);
+      return response;
+    },
+    enabled: !!id,
+  });
+}
+
+/**
+ * Fetch contract shares (accounts this contract is shared with)
+ */
+export function useContractShares(id: string) {
+  return useQuery({
+    queryKey: queryKeys.contracts.shares(id),
+    queryFn: async () => {
+      const response = await apiClient.get<ContractShare[]>(
+        `/api/contracts/${id}/shares`
+      );
+      return response;
+    },
+    enabled: !!id,
+  });
+}
+
+/**
+ * Fetch contracts shared with a specific account
+ */
+export function useSharedContracts(accountId: string) {
+  return useQuery({
+    queryKey: queryKeys.contracts.sharedWith(accountId),
+    queryFn: async () => {
+      const response = await apiClient.get<Contract[]>(
+        `/api/contracts/shared/${accountId}`
+      );
+      return response;
+    },
+    enabled: !!accountId,
+  });
+}
+
+/**
+ * Create new contract
+ */
+export function useCreateContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateContractDto) => {
+      const response = await apiClient.post<Contract>("/api/contracts", data);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.lists() });
+    },
+  });
+}
+
+/**
+ * Update existing contract
+ */
+export function useUpdateContract(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateContractDto) => {
+      const response = await apiClient.patch<Contract>(
+        `/api/contracts/${id}`,
+        data
+      );
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.detail(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.lists() });
+    },
+  });
+}
+
+/**
+ * Delete contract
+ */
+export function useDeleteContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete<void>(`/api/contracts/${id}`);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.lists() });
+    },
+  });
+}
+
+/**
+ * Share contract with an account (Phase 3)
+ */
+export function useShareContract(contractId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: ShareContractDto) => {
+      const response = await apiClient.post<ContractShare>(
+        `/api/contracts/${contractId}/shares`,
+        data
+      );
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.contracts.shares(contractId),
+      });
+    },
+  });
+}
+
+/**
+ * Unshare contract from an account (Phase 3)
+ */
+export function useUnshareContract(contractId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (accountId: string) => {
+      const response = await apiClient.delete<void>(
+        `/api/contracts/${contractId}/shares/${accountId}`
+      );
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.contracts.shares(contractId),
+      });
+    },
+  });
+}
