@@ -1,4 +1,4 @@
-# Revenue Management System
+# Revenova - Revenue Intelligence
 
 **Enterprise-grade B2B billing platform** for SaaS companies with complex contracts, hierarchical accounts, and seat-based licensing.
 
