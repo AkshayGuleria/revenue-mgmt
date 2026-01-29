@@ -120,23 +120,24 @@ export default function InvoicesListRoute() {
         title="Invoices"
         description="Manage invoices and track payments"
         actions={
-          <Link to="/invoices/new">
-            <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
-              <Plus className="mr-2 h-4 w-4" />
-              New Invoice
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Search Bar */}
+            <SearchInput
+              placeholder="Search invoices..."
+              onSearch={handleSearch}
+              className="w-80"
+            />
+
+            {/* New Invoice Button */}
+            <Link to="/invoices/new">
+              <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
+                <Plus className="mr-2 h-4 w-4" />
+                New Invoice
+              </Button>
+            </Link>
+          </div>
         }
       />
-
-      {/* Search Bar */}
-      <div className="mt-6">
-        <SearchInput
-          placeholder="Search invoices by number..."
-          onSearch={handleSearch}
-          className="max-w-md"
-        />
-      </div>
 
       <div className="mt-6">
         <DataTable

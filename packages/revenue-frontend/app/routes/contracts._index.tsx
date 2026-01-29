@@ -126,23 +126,24 @@ export default function ContractsListRoute() {
         title="Contracts"
         description="Manage multi-year contracts and seat-based licensing"
         actions={
-          <Link to="/contracts/new">
-            <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
-              <Plus className="mr-2 h-4 w-4" />
-              New Contract
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Search Bar */}
+            <SearchInput
+              placeholder="Search contracts..."
+              onSearch={handleSearch}
+              className="w-80"
+            />
+
+            {/* New Contract Button */}
+            <Link to="/contracts/new">
+              <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
+                <Plus className="mr-2 h-4 w-4" />
+                New Contract
+              </Button>
+            </Link>
+          </div>
         }
       />
-
-      {/* Search Bar */}
-      <div className="mt-6">
-        <SearchInput
-          placeholder="Search contracts by number..."
-          onSearch={handleSearch}
-          className="max-w-md"
-        />
-      </div>
 
       <div className="mt-6">
         <DataTable
