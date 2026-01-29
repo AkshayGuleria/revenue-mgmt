@@ -107,23 +107,24 @@ export default function AccountsListRoute() {
         title="Accounts"
         description="Manage your enterprise accounts and hierarchies"
         actions={
-          <Link to="/accounts/new">
-            <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
-              <Plus className="mr-2 h-4 w-4" />
-              New Account
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Search Bar */}
+            <SearchInput
+              placeholder="Search accounts..."
+              onSearch={handleSearch}
+              className="w-80"
+            />
+
+            {/* New Account Button */}
+            <Link to="/accounts/new">
+              <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
+                <Plus className="mr-2 h-4 w-4" />
+                New Account
+              </Button>
+            </Link>
+          </div>
         }
       />
-
-      {/* Search Bar */}
-      <div className="mt-6">
-        <SearchInput
-          placeholder="Search accounts by name..."
-          onSearch={handleSearch}
-          className="max-w-md"
-        />
-      </div>
 
       <div className="mt-6">
         <DataTable
