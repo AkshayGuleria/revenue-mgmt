@@ -1,9 +1,9 @@
 /**
  * Contracts List Route
- * Displays all contracts with filters and pagination
+ * Displays all contracts with search, filters and pagination
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router";
 import { Plus } from "lucide-react";
 import { AppShell } from "~/components/layout/app-shell";
@@ -12,6 +12,7 @@ import { Button } from "~/components/ui/button";
 import { DataTable, type Column } from "~/components/data-table";
 import { StatusBadge } from "~/components/status-badge";
 import { EmptyState } from "~/components/empty-state";
+import { SearchInput } from "~/components/search-input";
 import { DateDisplay } from "~/components/date-display";
 import { CurrencyDisplay } from "~/components/currency-display";
 import { useContracts } from "~/lib/api/hooks/use-contracts";
@@ -21,11 +22,20 @@ import { PAGINATION } from "~/lib/constants";
 export default function ContractsListRoute() {
   const [offset, setOffset] = useState(PAGINATION.DEFAULT_OFFSET);
   const [limit] = useState(PAGINATION.DEFAULT_LIMIT);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch contracts with pagination and search
   const { data, isLoading } = useContracts({
     "offset[eq]": offset,
     "limit[eq]": limit,
+    ...(searchQuery && { "contractNumber[like]": searchQuery }),
   });
+
+  // Handle search with pagination reset
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setOffset(0); // Reset to first page when searching
+  }, []);
 
   const columns: Column<Contract>[] = [
     {
@@ -125,6 +135,15 @@ export default function ContractsListRoute() {
         }
       />
 
+      {/* Search Bar */}
+      <div className="mt-6">
+        <SearchInput
+          placeholder="Search contracts by number..."
+          onSearch={handleSearch}
+          className="max-w-md"
+        />
+      </div>
+
       <div className="mt-6">
         <DataTable
           columns={columns}
@@ -133,14 +152,25 @@ export default function ContractsListRoute() {
           isLoading={isLoading}
           onPageChange={setOffset}
           emptyState={
-            <EmptyState
-              title="No contracts found"
-              description="Get started by creating your first contract"
-              action={{
-                label: "Create Contract",
-                onClick: () => (window.location.href = "/contracts/new"),
-              }}
-            />
+            searchQuery ? (
+              <EmptyState
+                title="No contracts found"
+                description={`No contracts match "${searchQuery}"`}
+                action={{
+                  label: "Clear Search",
+                  onClick: () => handleSearch(""),
+                }}
+              />
+            ) : (
+              <EmptyState
+                title="No contracts found"
+                description="Get started by creating your first contract"
+                action={{
+                  label: "Create Contract",
+                  onClick: () => (window.location.href = "/contracts/new"),
+                }}
+              />
+            )
           }
         />
       </div>

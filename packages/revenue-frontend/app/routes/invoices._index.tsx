@@ -1,8 +1,9 @@
 /**
  * Invoices List Route
+ * Displays all invoices with search, filters and pagination
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router";
 import { Plus } from "lucide-react";
 import { AppShell } from "~/components/layout/app-shell";
@@ -11,6 +12,7 @@ import { Button } from "~/components/ui/button";
 import { DataTable, type Column } from "~/components/data-table";
 import { StatusBadge } from "~/components/status-badge";
 import { EmptyState } from "~/components/empty-state";
+import { SearchInput } from "~/components/search-input";
 import { DateDisplay } from "~/components/date-display";
 import { CurrencyDisplay } from "~/components/currency-display";
 import { useInvoices } from "~/lib/api/hooks/use-invoices";
@@ -20,11 +22,20 @@ import { PAGINATION } from "~/lib/constants";
 export default function InvoicesListRoute() {
   const [offset, setOffset] = useState(PAGINATION.DEFAULT_OFFSET);
   const [limit] = useState(PAGINATION.DEFAULT_LIMIT);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch invoices with pagination and search
   const { data, isLoading } = useInvoices({
     "offset[eq]": offset,
     "limit[eq]": limit,
+    ...(searchQuery && { "invoiceNumber[like]": searchQuery }),
   });
+
+  // Handle search with pagination reset
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setOffset(0); // Reset to first page when searching
+  }, []);
 
   const columns: Column<Invoice>[] = [
     {
@@ -118,6 +129,15 @@ export default function InvoicesListRoute() {
         }
       />
 
+      {/* Search Bar */}
+      <div className="mt-6">
+        <SearchInput
+          placeholder="Search invoices by number..."
+          onSearch={handleSearch}
+          className="max-w-md"
+        />
+      </div>
+
       <div className="mt-6">
         <DataTable
           columns={columns}
@@ -126,14 +146,25 @@ export default function InvoicesListRoute() {
           isLoading={isLoading}
           onPageChange={setOffset}
           emptyState={
-            <EmptyState
-              title="No invoices found"
-              description="Get started by creating your first invoice"
-              action={{
-                label: "Create Invoice",
-                onClick: () => (window.location.href = "/invoices/new"),
-              }}
-            />
+            searchQuery ? (
+              <EmptyState
+                title="No invoices found"
+                description={`No invoices match "${searchQuery}"`}
+                action={{
+                  label: "Clear Search",
+                  onClick: () => handleSearch(""),
+                }}
+              />
+            ) : (
+              <EmptyState
+                title="No invoices found"
+                description="Get started by creating your first invoice"
+                action={{
+                  label: "Create Invoice",
+                  onClick: () => (window.location.href = "/invoices/new"),
+                }}
+              />
+            )
           }
         />
       </div>

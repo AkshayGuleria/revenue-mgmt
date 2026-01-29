@@ -1,9 +1,9 @@
 /**
  * Accounts List Route
- * Displays all accounts with filters and pagination
+ * Displays all accounts with search, filters and pagination
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router";
 import { Plus } from "lucide-react";
 import { AppShell } from "~/components/layout/app-shell";
@@ -12,6 +12,7 @@ import { Button } from "~/components/ui/button";
 import { DataTable, type Column } from "~/components/data-table";
 import { StatusBadge } from "~/components/status-badge";
 import { EmptyState } from "~/components/empty-state";
+import { SearchInput } from "~/components/search-input";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
 import type { Account } from "~/types/models";
 import { PAGINATION } from "~/lib/constants";
@@ -19,12 +20,20 @@ import { PAGINATION } from "~/lib/constants";
 export default function AccountsListRoute() {
   const [offset, setOffset] = useState(PAGINATION.DEFAULT_OFFSET);
   const [limit] = useState(PAGINATION.DEFAULT_LIMIT);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch accounts with pagination
+  // Fetch accounts with pagination and search
   const { data, isLoading } = useAccounts({
     "offset[eq]": offset,
     "limit[eq]": limit,
+    ...(searchQuery && { "accountName[like]": searchQuery }),
   });
+
+  // Handle search with pagination reset
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setOffset(0); // Reset to first page when searching
+  }, []);
 
   const columns: Column<Account>[] = [
     {
@@ -107,6 +116,15 @@ export default function AccountsListRoute() {
         }
       />
 
+      {/* Search Bar */}
+      <div className="mt-6">
+        <SearchInput
+          placeholder="Search accounts by name..."
+          onSearch={handleSearch}
+          className="max-w-md"
+        />
+      </div>
+
       <div className="mt-6">
         <DataTable
           columns={columns}
@@ -115,14 +133,25 @@ export default function AccountsListRoute() {
           isLoading={isLoading}
           onPageChange={setOffset}
           emptyState={
-            <EmptyState
-              title="No accounts found"
-              description="Get started by creating your first account"
-              action={{
-                label: "Create Account",
-                onClick: () => (window.location.href = "/accounts/new"),
-              }}
-            />
+            searchQuery ? (
+              <EmptyState
+                title="No accounts found"
+                description={`No accounts match "${searchQuery}"`}
+                action={{
+                  label: "Clear Search",
+                  onClick: () => handleSearch(""),
+                }}
+              />
+            ) : (
+              <EmptyState
+                title="No accounts found"
+                description="Get started by creating your first account"
+                action={{
+                  label: "Create Account",
+                  onClick: () => (window.location.href = "/accounts/new"),
+                }}
+              />
+            )
           }
         />
       </div>
