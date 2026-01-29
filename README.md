@@ -63,20 +63,36 @@ See [packages/revenue-backend/README.md](./packages/revenue-backend/README.md) f
 
 ### Frontend Setup
 
-Frontend (Revenue app) is in a separate repository and connects to the backend API.
+Frontend is built with React Router 7, located in `packages/revenue-frontend/`.
 
 ```bash
-# Frontend connects to backend at http://localhost:5177
-# See Revenue app repository for setup instructions
+# Frontend setup (from repository root)
+cd packages/revenue-frontend
+cp .env.example .env
+# Edit .env (VITE_API_URL=http://localhost:5177)
+
+# Start development server
+npm run dev:frontend
+
+# Or start both backend + frontend
+cd ../..
+npm run dev
 ```
 
-**Frontend Features:**
+Frontend runs at `http://localhost:5173` and connects to backend at `http://localhost:5177`.
 
-- Dashboard for finance teams
-- Account and contract management UI
-- Invoice generation and tracking
-- Analytics and reporting (Phase 5)
-- Hierarchical account navigation (Phase 3)
+**Frontend Features (Implemented):**
+
+- ✅ Dashboard with key metrics
+- ✅ Account management UI with hierarchy visualization
+- ✅ Contract management with seat-based pricing
+- ✅ Product catalog with pricing models
+- ✅ Responsive layout with collapsible sidebar
+- ✅ Type-safe API integration with TanStack Query
+- ✅ Form validation with React Hook Form + Zod
+- 🚧 Invoice generation and tracking (in progress)
+- 🚧 Billing operations dashboard (in progress)
+- ⚪ Analytics and reporting (Phase 5, planned)
 
 ---
 
@@ -92,19 +108,33 @@ revenue-mgmt/
 ├── docs/                      # Documentation
 │   ├── adrs/                  # Architecture Decision Records
 │   │   ├── 001-nestjs-fastify-swc-framework.md
-│   │   └── 002-backend-testing-framework.md
+│   │   ├── 002-backend-testing-framework.md
+│   │   └── 003-rest-api-response-structure.md
+│   ├── features/              # Feature documentation
+│   │   ├── accounts.md
+│   │   ├── contracts.md
+│   │   ├── products.md
+│   │   ├── invoices.md
+│   │   ├── billing.md
+│   │   └── hierarchical-accounts.md
 │   └── feature-spec.md        # Complete 141-task specification
 │
 ├── packages/                  # Monorepo packages
-│   └── revenue-backend/       # NestJS API server
-│       ├── src/               # Source code
-│       ├── prisma/            # Database schema & migrations
-│       ├── test/              # Tests (Jest + Supertest)
-│       └── README.md          # Backend-specific documentation
+│   ├── revenue-backend/       # NestJS API server
+│   │   ├── src/               # Source code
+│   │   ├── prisma/            # Database schema & migrations
+│   │   ├── test/              # Tests (Jest + Supertest)
+│   │   └── README.md          # Backend documentation
+│   │
+│   └── revenue-frontend/      # React Router frontend
+│       ├── app/               # Application code
+│       │   ├── routes/        # File-based routing
+│       │   ├── components/    # React components
+│       │   ├── lib/           # API client & utilities
+│       │   └── types/         # TypeScript type definitions
+│       └── public/            # Static assets
 │
 └── README.md                  # This file
-
-Note: Frontend (Revenue app) is in a separate repository
 ```
 
 ---
@@ -113,11 +143,16 @@ Note: Frontend (Revenue app) is in a separate repository
 
 ### Frontend
 
-- **Framework:** React (separate Revenue app repository)
-- **Language:** TypeScript
-- **UI Components:** B2B dashboard for finance teams
-- **API Integration:** REST client for backend API
-- **Testing:** Playwright for E2E tests
+- **Framework:** React Router 7 (formerly Remix)
+- **Language:** TypeScript 5 (strict mode)
+- **UI Components:** shadcn/ui + Radix UI primitives
+- **Styling:** Tailwind CSS v4
+- **Data Fetching:** TanStack Query (React Query) v5
+- **State Management:** Zustand
+- **Forms:** React Hook Form + Zod validation
+- **Icons:** Lucide React
+- **Date Handling:** date-fns
+- **Testing:** Vitest + React Testing Library (planned)
 
 ### Backend
 

@@ -1,0 +1,112 @@
+/**
+ * TanStack Query (React Query) Configuration
+ */
+
+import { QueryClient } from "@tanstack/react-query";
+
+/**
+ * Create and configure the QueryClient instance
+ */
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Data is considered fresh for 1 minute
+      staleTime: 60 * 1000,
+
+      // Cache data for 5 minutes
+      gcTime: 5 * 60 * 1000,
+
+      // Retry failed queries 3 times with exponential backoff
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+
+      // Refetch on window focus for real-time data
+      refetchOnWindowFocus: true,
+
+      // Don't refetch on mount if data is fresh
+      refetchOnMount: true,
+
+      // Refetch on reconnect
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      // Retry mutations once on failure
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+});
+
+/**
+ * Query keys factory for consistent key management
+ */
+export const queryKeys = {
+  // Accounts
+  accounts: {
+    all: ["accounts"] as const,
+    lists: () => [...queryKeys.accounts.all, "list"] as const,
+    list: (params?: Record<string, any>) =>
+      [...queryKeys.accounts.lists(), params] as const,
+    details: () => [...queryKeys.accounts.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.accounts.details(), id] as const,
+    hierarchy: (id: string) =>
+      [...queryKeys.accounts.detail(id), "hierarchy"] as const,
+    children: (id: string) =>
+      [...queryKeys.accounts.detail(id), "children"] as const,
+    ancestors: (id: string) =>
+      [...queryKeys.accounts.detail(id), "ancestors"] as const,
+    descendants: (id: string) =>
+      [...queryKeys.accounts.detail(id), "descendants"] as const,
+  },
+
+  // Contracts
+  contracts: {
+    all: ["contracts"] as const,
+    lists: () => [...queryKeys.contracts.all, "list"] as const,
+    list: (params?: Record<string, any>) =>
+      [...queryKeys.contracts.lists(), params] as const,
+    details: () => [...queryKeys.contracts.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.contracts.details(), id] as const,
+    shares: (id: string) =>
+      [...queryKeys.contracts.detail(id), "shares"] as const,
+    sharedWith: (accountId: string) =>
+      [...queryKeys.contracts.all, "shared", accountId] as const,
+  },
+
+  // Products
+  products: {
+    all: ["products"] as const,
+    lists: () => [...queryKeys.products.all, "list"] as const,
+    list: (params?: Record<string, any>) =>
+      [...queryKeys.products.lists(), params] as const,
+    details: () => [...queryKeys.products.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.products.details(), id] as const,
+  },
+
+  // Invoices
+  invoices: {
+    all: ["invoices"] as const,
+    lists: () => [...queryKeys.invoices.all, "list"] as const,
+    list: (params?: Record<string, any>) =>
+      [...queryKeys.invoices.lists(), params] as const,
+    details: () => [...queryKeys.invoices.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.invoices.details(), id] as const,
+  },
+
+  // Billing
+  billing: {
+    all: ["billing"] as const,
+    job: (jobId: string) => [...queryKeys.billing.all, "job", jobId] as const,
+    queueStats: () => [...queryKeys.billing.all, "queue-stats"] as const,
+    consolidatedQueueStats: () =>
+      [...queryKeys.billing.all, "consolidated-queue-stats"] as const,
+  },
+
+  // Dashboard
+  dashboard: {
+    all: ["dashboard"] as const,
+    stats: () => [...queryKeys.dashboard.all, "stats"] as const,
+    recentActivity: () => [...queryKeys.dashboard.all, "recent-activity"] as const,
+    expiringContracts: () => [...queryKeys.dashboard.all, "expiring-contracts"] as const,
+  },
+} as const;

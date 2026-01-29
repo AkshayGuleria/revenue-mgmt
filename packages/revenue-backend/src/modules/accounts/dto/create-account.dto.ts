@@ -72,6 +72,14 @@ export class CreateAccountDto {
   billingContactEmail?: string;
 
   @ApiPropertyOptional({
+    description: 'Billing contact phone',
+    example: '+1-555-123-4567',
+  })
+  @IsOptional()
+  @IsString()
+  billingContactPhone?: string;
+
+  @ApiPropertyOptional({
     description: 'Billing address line 1',
     example: '123 Main Street',
   })

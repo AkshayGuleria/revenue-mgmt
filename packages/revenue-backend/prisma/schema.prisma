@@ -20,6 +20,7 @@ model Account {
   primaryContactEmail   String    @map("primary_contact_email")
   billingContactName    String?   @map("billing_contact_name")
   billingContactEmail   String?   @map("billing_contact_email")
+  billingContactPhone   String?   @map("billing_contact_phone")
 
   // Billing Address
   billingAddressLine1   String?   @map("billing_address_line1")

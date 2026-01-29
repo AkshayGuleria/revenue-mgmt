@@ -1,8 +1,74 @@
-# Production Scripts
+# Scripts
 
-Collection of utility scripts for production deployment, monitoring, and maintenance.
+Collection of utility scripts for development, testing, production deployment, monitoring, and maintenance.
 
-## Available Scripts
+## Development & Testing Scripts
+
+### `generate-test-data.ts`
+
+**Purpose:** Generate realistic test data for development and testing
+
+**Usage:**
+```bash
+# From backend directory
+npm run generate-data
+
+# Or with clean flag (future: will clear existing data first)
+npm run generate-data:clean
+```
+
+**What it generates:**
+- **Product Catalog** (5 products):
+  - Starter Plan (seat-based, $29.99/mo)
+  - Professional Plan (seat-based, $79.99/mo)
+  - Enterprise Plan (volume-tiered, $199.99+)
+  - Premium Support Add-on ($999/mo)
+  - Advanced Analytics Module ($499/mo)
+
+- **Hierarchical Accounts** (15+ accounts):
+  - 3 parent companies (Enterprise tier)
+  - 5 subsidiaries (Level 2)
+  - 4 departments/regional offices (Level 3)
+  - 2 standalone SMB/Startup accounts
+
+- **Contracts** (10-20 contracts):
+  - Various billing frequencies (monthly, quarterly, annual)
+  - Different seat counts and pricing
+  - Mix of active/renewal terms
+
+**Configuration:**
+- `API_BASE_URL` environment variable (default: `http://localhost:5177`)
+- Requires backend API to be running
+
+**Example Output:**
+```
+🚀 Starting data generation...
+
+API Base URL: http://localhost:5177
+Clean first:  No
+
+[2026-01-28...] 🏥 Checking API health...
+[2026-01-28...] ✅ API is healthy
+[2026-01-28...] 📦 Generating product catalog...
+[2026-01-28...] ✅ Created product: Starter Plan (ID: ...)
+...
+============================================================
+📊 DATA GENERATION SUMMARY
+============================================================
+✅ Products created:  5
+✅ Accounts created:  15
+✅ Contracts created: 12
+============================================================
+```
+
+**Before running:**
+1. Ensure backend is running: `npm run dev`
+2. Ensure database is migrated: `npm run prisma:migrate`
+3. Optionally clear existing data via Prisma Studio
+
+---
+
+## Production Scripts
 
 ### 1. `backup-database.sh`
 
@@ -152,9 +218,11 @@ Add recommended schedules:
 ```
 scripts/
 ├── README.md                   # This file
-├── backup-database.sh          # Database backup script
-├── restore-database.sh         # Database restore script
-└── health-monitor.sh           # Health monitoring script
+├── generate-test-data.ts       # Test data generator (development)
+├── backup-database.sh          # Database backup script (production)
+├── restore-database.sh         # Database restore script (production)
+├── health-monitor.sh           # Health monitoring script (production)
+└── test-local-deployment.sh    # Local deployment test script
 
 ../backups/                     # Backup storage (created automatically)
 ├── backup_revenue_db_20260116_020000.sql.gz
