@@ -4,7 +4,7 @@
  */
 
 import { useParams, Link } from "react-router";
-import { Edit, Building, CreditCard, Mail, Phone, MapPin, DollarSign, Calendar, User } from "lucide-react";
+import { Edit, Building, CreditCard, Mail, Phone, MapPin, DollarSign, Calendar, User, FileText } from "lucide-react";
 import { AppShell } from "~/components/layout/app-shell";
 import { PageHeader } from "~/components/layout/page-header";
 import { Button } from "~/components/ui/button";
@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { PageLoader } from "~/components/page-loader";
 import { StatusBadge } from "~/components/status-badge";
 import { useAccount } from "~/lib/api/hooks/use-accounts";
+import { useContracts } from "~/lib/api/hooks/use-contracts";
+import { Skeleton } from "~/components/ui/skeleton";
 
 export default function AccountDetailsRoute() {
   const params = useParams();
@@ -20,6 +22,11 @@ export default function AccountDetailsRoute() {
 
   const { data, isLoading } = useAccount(accountId);
   const account = data?.data as any;
+
+  // Fetch contracts for this account
+  const { data: contractsData, isLoading: contractsLoading } = useContracts({
+    "accountId[eq]": accountId,
+  });
 
   if (isLoading) {
     return (
@@ -353,29 +360,92 @@ export default function AccountDetailsRoute() {
             <CardHeader className="bg-gradient-to-br from-green-50 to-emerald-50">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-green-500 flex items-center justify-center">
-                  <Edit className="h-6 w-6 text-white" />
+                  <FileText className="h-6 w-6 text-white" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-xl font-bold text-gray-900">Contracts</CardTitle>
                   <CardDescription className="text-gray-600">Active and historical contracts</CardDescription>
                 </div>
+                {!contractsLoading && contractsData?.data && contractsData.data.length > 0 && (
+                  <Link to="/contracts/new">
+                    <Button size="sm" className="hover:scale-105 active:scale-95 transition-transform duration-200">
+                      New Contract
+                    </Button>
+                  </Link>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="text-center py-12">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                  <Edit className="h-10 w-10 text-gray-400" />
+              {contractsLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-lg border">
+                      <Skeleton className="h-12 w-12 rounded-lg" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-48" />
+                      </div>
+                      <Skeleton className="h-9 w-20" />
+                    </div>
+                  ))}
                 </div>
-                <p className="text-lg font-semibold text-gray-900 mb-2">No Contracts Yet</p>
-                <p className="text-sm text-gray-600 mb-6">
-                  Contract list will be displayed here once created
-                </p>
-                <Link to="/contracts/new">
-                  <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
-                    Create First Contract
-                  </Button>
-                </Link>
-              </div>
+              ) : contractsData?.data && contractsData.data.length > 0 ? (
+                <div className="space-y-3">
+                  {contractsData.data.map((contract: any) => (
+                    <Link
+                      key={contract.id}
+                      to={`/contracts/${contract.id}`}
+                      className="block p-4 rounded-lg border-2 border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <p className="font-bold text-gray-900">{contract.contractNumber}</p>
+                            <StatusBadge status={contract.status || "active"} />
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="h-4 w-4" />
+                              ${contract.contractValue?.toLocaleString()}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <User className="h-4 w-4" />
+                              {contract.seatCount} seats
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              {contract.billingFrequency}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right text-sm text-gray-600">
+                          <div>
+                            {new Date(contract.startDate).toLocaleDateString()} - {new Date(contract.endDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                    <FileText className="h-10 w-10 text-gray-400" />
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900 mb-2">No Contracts Yet</p>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Create a contract to start tracking billing and revenue
+                  </p>
+                  <Link to="/contracts/new">
+                    <Button className="hover:scale-105 active:scale-95 transition-transform duration-200">
+                      Create First Contract
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
