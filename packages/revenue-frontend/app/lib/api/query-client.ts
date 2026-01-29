@@ -101,4 +101,12 @@ export const queryKeys = {
     consolidatedQueueStats: () =>
       [...queryKeys.billing.all, "consolidated-queue-stats"] as const,
   },
+
+  // Dashboard
+  dashboard: {
+    all: ["dashboard"] as const,
+    stats: () => [...queryKeys.dashboard.all, "stats"] as const,
+    recentActivity: () => [...queryKeys.dashboard.all, "recent-activity"] as const,
+    expiringContracts: () => [...queryKeys.dashboard.all, "expiring-contracts"] as const,
+  },
 } as const;
