@@ -14,9 +14,6 @@ import {
   FileText,
   Receipt,
   DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Plus,
   Zap,
   FileSpreadsheet
 } from "lucide-react";
@@ -106,9 +103,7 @@ export default function Dashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-4xl font-bold text-gray-900 tracking-tight mb-2">
-                    {stat.value}
-                  </div>
+                  <div className="text-4xl font-bold text-gray-900 tracking-tight mb-2">{stat.value}</div>
                   <p className="text-sm text-gray-500">
                     {stat.description}
                   </p>
