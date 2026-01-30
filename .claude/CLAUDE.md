@@ -108,7 +108,7 @@ The implementation follows a 5-phase approach (141 subtasks across 12 weeks):
 ## Project Structure (Planned)
 
 ```
-revenue-mgmt/
+revenova/
 ├── docs/
 │   └── feature-spec.md      # Complete 141-task specification
 ├── packages/                # Future monorepo

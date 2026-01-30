@@ -49,8 +49,8 @@ A complete revenue management system designed for B2B SaaS companies selling to 
 
 ```bash
 # Clone repository
-git clone https://github.com/AkshayGuleria/revenue-mgmt.git
-cd revenue-mgmt
+git clone https://github.com/AkshayGuleria/revenova.git
+cd revenova
 
 # Backend setup
 cd packages/revenue-backend
@@ -114,7 +114,7 @@ Frontend runs at `http://localhost:5173` and connects to backend at `http://loca
 ## Project Structure
 
 ```
-revenue-mgmt/
+revenova/
 ├── .claude/                    # AI agent configuration
 │   ├── CLAUDE.md              # Project guidance for AI agents
 │   ├── agents.md              # Team agent definitions

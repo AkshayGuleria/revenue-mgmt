@@ -41,7 +41,7 @@ async function bootstrap() {
 
   // Swagger API documentation
   const config = new DocumentBuilder()
-    .setTitle('Revenue Management API')
+    .setTitle('Revenova Backend API')
     .setDescription('B2B Enterprise billing system')
     .setVersion('1.0')
     .addBearerAuth()

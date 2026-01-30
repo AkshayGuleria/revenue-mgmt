@@ -113,7 +113,7 @@ sudo chown deploy:deploy /opt/revenue-backend
 cd /opt/revenue-backend
 
 # Clone repository (replace with your repo URL)
-git clone https://github.com/your-username/revenue-mgmt.git .
+git clone https://github.com/your-username/revenova.git .
 cd packages/revenue-backend
 ```
 

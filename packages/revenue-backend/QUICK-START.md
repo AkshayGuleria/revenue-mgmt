@@ -51,7 +51,7 @@ sudo chown deploy:deploy /opt/revenue-backend
 cd /opt/revenue-backend
 
 # Clone your repository
-git clone https://github.com/YOUR-USERNAME/revenue-mgmt.git .
+git clone https://github.com/YOUR-USERNAME/revenova.git .
 cd packages/revenue-backend
 ```
 

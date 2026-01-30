@@ -1,8 +1,8 @@
 {
-  "name": "revenue-mgmt",
+  "name": "revenova",
   "version": "1.0.0",
   "private": true,
-  "description": "B2B Enterprise Revenue Management System",
+  "description": "Revenova - Revenue Intelligence Platform",
   "workspaces": [
     "packages/*"
   ],
