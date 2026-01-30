@@ -1,6 +1,6 @@
 # Frontend Testing Checklist
 
-Comprehensive manual testing checklist for the Revenue Management Frontend.
+Comprehensive manual testing checklist for Revenova - Revenue Intelligence Frontend.
 
 ## Prerequisites
 

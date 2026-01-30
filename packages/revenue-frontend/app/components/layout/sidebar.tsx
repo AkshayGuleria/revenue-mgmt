@@ -17,8 +17,7 @@ import {
 import { cn } from "~/lib/utils";
 import { useUIStore } from "~/lib/stores/ui-store";
 import { Button } from "~/components/ui/button";
-import { Separator } from "~/components/ui/separator";
-import { APP_NAME } from "~/lib/constants";
+import { RevenovaLogo } from "~/components/revenova-logo";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -40,23 +39,33 @@ export function Sidebar() {
         sidebarCollapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Header */}
-      <div className="flex h-16 items-center justify-between px-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600">
-        {!sidebarCollapsed && (
-          <h1 className="text-lg font-bold truncate text-white">{APP_NAME}</h1>
+      {/* Header with Logo */}
+      <div className="flex h-16 items-center justify-between px-4 border-b bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+        {!sidebarCollapsed ? (
+          <RevenovaLogo showText={true} size="sm" className="text-white" />
+        ) : (
+          <RevenovaLogo showText={false} size="sm" className="mx-auto" />
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebarCollapsed}
-          className={cn("text-white hover:bg-white/20", sidebarCollapsed && "mx-auto")}
-        >
-          {sidebarCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
+        {!sidebarCollapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebarCollapsed}
+            className="text-white hover:bg-white/20"
+          >
             <ChevronLeft className="h-4 w-4" />
-          )}
-        </Button>
+          </Button>
+        )}
+        {sidebarCollapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebarCollapsed}
+            className="absolute top-4 -right-3 bg-white text-blue-600 hover:bg-blue-50 shadow-md rounded-full h-6 w-6"
+          >
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -88,9 +97,15 @@ export function Sidebar() {
 
       {/* Footer */}
       {!sidebarCollapsed && (
-        <div className="border-t p-4 bg-gray-50">
-          <p className="text-xs text-gray-500 font-medium">
-            Revenue Management v1.0
+        <div className="border-t p-4 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 animate-pulse"></div>
+            <p className="text-xs font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Revenova v1.0
+            </p>
+          </div>
+          <p className="text-[10px] text-gray-500 font-medium">
+            Revenue Intelligence Platform
           </p>
         </div>
       )}

@@ -1,10 +1,25 @@
-# Revenue Management Frontend
+# Revenova - Revenue Intelligence Frontend
+
+```
+╭──────────────────────────────────────────────────────────────────────────╮
+│                                                                          │
+│   ██████╗ ███████╗██╗   ██╗███████╗███╗   ██╗ ██████╗ ██╗   ██╗ █████╗   │
+│   ██╔══██╗██╔════╝██║   ██║██╔════╝████╗  ██║██╔═══██╗██║   ██║██╔══██╗  │
+│   ██████╔╝█████╗  ██║   ██║█████╗  ██╔██╗ ██║██║   ██║██║   ██║███████║  │
+│   ██╔══██╗██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║██║   ██║╚██╗ ██╔╝██╔══██║  │
+│   ██║  ██║███████╗ ╚████╔╝ ███████╗██║ ╚████║╚██████╔╝ ╚████╔╝ ██║  ██║  │
+│   ╚═╝  ╚═╝╚══════╝  ╚═══╝  ╚══════╝╚═╝  ╚═══╝ ╚═════╝   ╚═══╝  ╚═╝  ╚═╝  │
+│                                                                          │
+│                    Revenue Intelligence Platform                         │
+│                                                                          │
+╰──────────────────────────────────────────────────────────────────────────╯
+```
 
 A comprehensive B2B SaaS dashboard for managing enterprise accounts, contracts, products, and invoices. Built with React Router 7, TanStack Query, shadcn/ui, and Tailwind CSS.
 
 ## Overview
 
-This frontend application provides a complete user interface for the Revenue Management System, enabling SaaS companies to manage:
+This frontend application provides a complete user interface for the Revenova, enabling SaaS companies to manage:
 
 - **Hierarchical Accounts** - Parent-child company relationships with 3+ level hierarchies
 - **Contract Management** - Multi-year deals with seat-based licensing and auto-renewal
@@ -100,7 +115,7 @@ Create a `.env` file in the frontend root:
 VITE_API_URL=http://localhost:5177
 
 # Application Configuration
-VITE_APP_NAME="Revenue Management System"
+VITE_APP_NAME="Revenova"
 ```
 
 ## Installation
@@ -464,7 +479,7 @@ Set the following environment variables in production:
 
 ```bash
 VITE_API_URL=https://api.yourdomain.com
-VITE_APP_NAME="Revenue Management System"
+VITE_APP_NAME="Revenova"
 NODE_ENV=production
 ```
 

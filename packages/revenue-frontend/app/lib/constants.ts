@@ -3,7 +3,7 @@
  */
 
 export const APP_NAME =
-  import.meta.env.VITE_APP_NAME || "Revenue Management System";
+  import.meta.env.VITE_APP_NAME || "Revenova";
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5177";

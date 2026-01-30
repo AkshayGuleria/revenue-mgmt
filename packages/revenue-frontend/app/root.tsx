@@ -15,6 +15,8 @@ import { Toaster } from "~/components/ui/sonner";
 import { APP_NAME } from "~/lib/constants";
 
 export const links: Route.LinksFunction = () => [
+  { rel: "icon", type: "image/svg+xml", href: "/favicon.png" },
+  { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
