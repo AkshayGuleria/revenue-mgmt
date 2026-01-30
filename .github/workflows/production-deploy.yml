@@ -91,182 +91,182 @@ jobs:
   # =================================
   # Job 2: Build Docker Image
   # =================================
-  build:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-    needs: test
-    if: always() && (needs.test.result == 'success' || github.event.inputs.skip_tests == 'true')
-    defaults:
-      run:
-        working-directory: ./packages/revenue-backend
+  # build:
+  #   name: Build Docker Image
+  #   runs-on: ubuntu-latest
+  #   needs: test
+  #   if: always() && (needs.test.result == 'success' || github.event.inputs.skip_tests == 'true')
+  #   defaults:
+  #     run:
+  #       working-directory: ./packages/revenue-backend
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub (Optional)
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+  #     - name: Log in to Docker Hub (Optional)
+  #       if: github.event_name != 'pull_request'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+  #     - name: Extract metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}
+  #         tags: |
+  #           type=ref,event=branch
+  #           type=sha,prefix={{branch}}-
+  #           type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./packages/revenue-backend
-          file: ./packages/revenue-backend/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
+  #     - name: Build and push Docker image
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         context: ./packages/revenue-backend
+  #         file: ./packages/revenue-backend/Dockerfile
+  #         push: ${{ github.event_name != 'pull_request' }}
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: ${{ steps.meta.outputs.labels }}
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
+  #         platforms: linux/amd64
 
-      - name: Save image artifact
-        if: github.event_name != 'pull_request'
-        run: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
-          docker save ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest -o /tmp/revenue-backend.tar
+  #     - name: Save image artifact
+  #       if: github.event_name != 'pull_request'
+  #       run: |
+  #         docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+  #         docker save ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest -o /tmp/revenue-backend.tar
 
-      - name: Upload image artifact
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image
-          path: /tmp/revenue-backend.tar
-          retention-days: 1
+  #     - name: Upload image artifact
+  #       if: github.event_name != 'pull_request'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: docker-image
+  #         path: /tmp/revenue-backend.tar
+  #         retention-days: 1
 
   # =================================
   # Job 3: Deploy to VPS
   # =================================
-  deploy:
-    name: Deploy to Production VPS
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'pull_request'
-    defaults:
-      run:
-        working-directory: ./packages/revenue-backend
+  # deploy:
+  #   name: Deploy to Production VPS
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: github.event_name != 'pull_request'
+  #   defaults:
+  #     run:
+  #       working-directory: ./packages/revenue-backend
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+  #     - name: Configure SSH
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+  #         chmod 600 ~/.ssh/deploy_key
+  #         ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy files to VPS
-        run: |
-          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            --exclude 'node_modules' \
-            --exclude 'dist' \
-            --exclude '.git' \
-            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+  #     - name: Copy files to VPS
+  #       run: |
+  #         rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+  #           --exclude 'node_modules' \
+  #           --exclude 'dist' \
+  #           --exclude '.git' \
+  #           ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
 
-      - name: Deploy on VPS
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          script: |
-            cd ${{ secrets.VPS_DEPLOY_PATH }}
+  #     - name: Deploy on VPS
+  #       uses: appleboy/ssh-action@v1.0.0
+  #       with:
+  #         host: ${{ secrets.VPS_HOST }}
+  #         username: ${{ secrets.VPS_USER }}
+  #         key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+  #         script: |
+  #           cd ${{ secrets.VPS_DEPLOY_PATH }}
 
-            # Pull latest changes (if not using rsync above)
-            # git pull origin main
+  #           # Pull latest changes (if not using rsync above)
+  #           # git pull origin main
 
-            # Load environment variables
-            export $(cat .env.production | xargs)
+  #           # Load environment variables
+  #           export $(cat .env.production | xargs)
 
-            # Pull latest Docker image (if using Docker Hub)
-            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+  #           # Pull latest Docker image (if using Docker Hub)
+  #           docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
 
-            # Stop existing containers
-            docker-compose -f docker-compose.production.yml down
+  #           # Stop existing containers
+  #           docker-compose -f docker-compose.production.yml down
 
-            # Run database migrations
-            docker-compose -f docker-compose.production.yml run --rm api npx prisma migrate deploy
+  #           # Run database migrations
+  #           docker-compose -f docker-compose.production.yml run --rm api npx prisma migrate deploy
 
-            # Start services
-            docker-compose -f docker-compose.production.yml up -d
+  #           # Start services
+  #           docker-compose -f docker-compose.production.yml up -d
 
-            # Cleanup old images
-            docker image prune -af --filter "until=24h"
+  #           # Cleanup old images
+  #           docker image prune -af --filter "until=24h"
 
-            # Check health
-            sleep 10
-            curl -f http://localhost:5177/health/liveness || exit 1
+  #           # Check health
+  #           sleep 10
+  #           curl -f http://localhost:5177/health/liveness || exit 1
 
-            echo "✅ Deployment completed successfully!"
+  #           echo "✅ Deployment completed successfully!"
 
-      - name: Health Check
-        run: |
-          sleep 15
-          curl -f https://api.yourdomain.com/health/readiness || exit 1
+  #     - name: Health Check
+  #       run: |
+  #         sleep 15
+  #         curl -f https://api.yourdomain.com/health/readiness || exit 1
 
-      - name: Notify deployment success
-        if: success()
-        run: |
-          echo "✅ Production deployment successful!"
-          echo "Version: ${{ github.sha }}"
-          echo "Deployed at: $(date)"
+  #     - name: Notify deployment success
+  #       if: success()
+  #       run: |
+  #         echo "✅ Production deployment successful!"
+  #         echo "Version: ${{ github.sha }}"
+  #         echo "Deployed at: $(date)"
 
-      - name: Notify deployment failure
-        if: failure()
-        run: |
-          echo "❌ Production deployment failed!"
-          echo "Please check the logs and rollback if necessary."
+  #     - name: Notify deployment failure
+  #       if: failure()
+  #       run: |
+  #         echo "❌ Production deployment failed!"
+  #         echo "Please check the logs and rollback if necessary."
 
-  # =================================
-  # Job 4: Post-Deployment Tests
-  # =================================
-  smoke-tests:
-    name: Smoke Tests
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: github.event_name != 'pull_request'
+  # # =================================
+  # # Job 4: Post-Deployment Tests
+  # # =================================
+  # smoke-tests:
+  #   name: Smoke Tests
+  #   runs-on: ubuntu-latest
+  #   needs: deploy
+  #   if: github.event_name != 'pull_request'
 
-    steps:
-      - name: Test API health endpoints
-        run: |
-          echo "Testing liveness probe..."
-          curl -f https://api.yourdomain.com/health/liveness
+  #   steps:
+  #     - name: Test API health endpoints
+  #       run: |
+  #         echo "Testing liveness probe..."
+  #         curl -f https://api.yourdomain.com/health/liveness
 
-          echo "Testing readiness probe..."
-          curl -f https://api.yourdomain.com/health/readiness
+  #         echo "Testing readiness probe..."
+  #         curl -f https://api.yourdomain.com/health/readiness
 
-      - name: Test API endpoints
-        run: |
-          echo "Testing root endpoint..."
-          curl -f https://api.yourdomain.com/
+  #     - name: Test API endpoints
+  #       run: |
+  #         echo "Testing root endpoint..."
+  #         curl -f https://api.yourdomain.com/
 
-          # Add more endpoint tests as needed
-          # echo "Testing accounts endpoint..."
-          # curl -f -H "Authorization: Bearer ${{ secrets.API_TEST_TOKEN }}" https://api.yourdomain.com/api/accounts
+  #         # Add more endpoint tests as needed
+  #         # echo "Testing accounts endpoint..."
+  #         # curl -f -H "Authorization: Bearer ${{ secrets.API_TEST_TOKEN }}" https://api.yourdomain.com/api/accounts
 
-      - name: Notify test results
-        if: always()
-        run: |
-          if [ $? -eq 0 ]; then
-            echo "✅ Smoke tests passed!"
-          else
-            echo "❌ Smoke tests failed!"
-          fi
+  #     - name: Notify test results
+  #       if: always()
+  #       run: |
+  #         if [ $? -eq 0 ]; then
+  #           echo "✅ Smoke tests passed!"
+  #         else
+  #           echo "❌ Smoke tests failed!"
+  #         fi
