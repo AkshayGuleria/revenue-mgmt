@@ -39,8 +39,6 @@ const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
   unitPrice: z.coerce.number().min(0, "Unit price cannot be negative"),
-  discountAmount: z.coerce.number().min(0).optional(),
-  taxAmount: z.coerce.number().min(0).optional(),
   productId: z.string().optional(),
 });
 
@@ -55,6 +53,9 @@ const invoiceFormSchema = z.object({
   notes: z.string().optional(),
   billingAddress: z.string().optional(),
   items: z.array(invoiceItemSchema).min(1, "At least one line item is required"),
+  // Invoice-level tax and discount
+  tax: z.coerce.number().min(0).default(0),
+  discount: z.coerce.number().min(0).default(0),
 });
 
 type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
@@ -102,6 +103,8 @@ export function InvoiceForm({
           notes: invoice.notes || "",
           billingAddress: invoice.billingAddress || "",
           items: invoice.items || [],
+          tax: invoice.tax || 0,
+          discount: invoice.discount || 0,
         }
       : {
           accountId: "",
@@ -120,10 +123,10 @@ export function InvoiceForm({
               description: "",
               quantity: 1,
               unitPrice: 0,
-              discountAmount: 0,
-              taxAmount: 0,
             },
           ],
+          tax: 0,
+          discount: 0,
         },
   });
 
@@ -146,7 +149,6 @@ export function InvoiceForm({
     // Calculate totals and add required amount field for each item
     const items = data.items.map((item) => {
       const amount = item.quantity * item.unitPrice; // Required by backend
-      const lineTotal = amount - (item.discountAmount || 0) + (item.taxAmount || 0);
       return {
         description: item.description,
         quantity: item.quantity,
@@ -158,15 +160,7 @@ export function InvoiceForm({
     });
 
     const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-    const discountAmount = data.items.reduce(
-      (sum, item) => sum + (item.discountAmount || 0),
-      0
-    );
-    const taxAmount = data.items.reduce(
-      (sum, item) => sum + (item.taxAmount || 0),
-      0
-    );
-    const total = subtotal - discountAmount + taxAmount;
+    const total = subtotal - data.discount + data.tax;
 
     const invoiceData = {
       invoiceNumber: data.invoiceNumber,
@@ -180,8 +174,8 @@ export function InvoiceForm({
       billingAddress: data.billingAddress,
       items,
       subtotal,
-      tax: taxAmount,
-      discount: discountAmount,
+      tax: data.tax,
+      discount: data.discount,
       total,
       billingType: "one_time" as const,
       consolidated: false,
@@ -195,37 +189,26 @@ export function InvoiceForm({
       description: "",
       quantity: 1,
       unitPrice: 0,
-      discountAmount: 0,
-      taxAmount: 0,
     });
   };
 
   const calculateLineTotal = (index: number) => {
     const item = form.watch(`items.${index}`);
-    return (
-      item.quantity * item.unitPrice -
-      (item.discountAmount || 0) +
-      (item.taxAmount || 0)
-    );
+    return item.quantity * item.unitPrice;
   };
 
   const calculateTotals = () => {
     const items = form.watch("items");
+    const tax = form.watch("tax") || 0;
+    const discount = form.watch("discount") || 0;
+
     const subtotal = items.reduce(
       (sum, item) => sum + item.quantity * item.unitPrice,
       0
     );
-    const discountAmount = items.reduce(
-      (sum, item) => sum + (item.discountAmount || 0),
-      0
-    );
-    const taxAmount = items.reduce(
-      (sum, item) => sum + (item.taxAmount || 0),
-      0
-    );
-    const total = subtotal - discountAmount + taxAmount;
+    const total = subtotal - discount + tax;
 
-    return { subtotal, discountAmount, taxAmount, total };
+    return { subtotal, discount, tax, total };
   };
 
   const totals = calculateTotals();
@@ -379,6 +362,46 @@ export function InvoiceForm({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="tax"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tax Amount</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="discount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Discount Amount</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-6">
@@ -490,51 +513,13 @@ export function InvoiceForm({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.discountAmount`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Discount</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            min="0"
-                            step="0.01"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.taxAmount`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tax</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            min="0"
-                            step="0.01"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <div className="text-sm">
-                    <span className="text-gray-600">Line Total: </span>
-                    <span className="font-semibold">
-                      ${calculateLineTotal(index).toFixed(2)}
-                    </span>
+                  <div className="flex items-end">
+                    <div className="text-sm">
+                      <span className="text-gray-600">Amount: </span>
+                      <span className="font-semibold">
+                        ${calculateLineTotal(index).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -550,19 +535,19 @@ export function InvoiceForm({
               <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
             </div>
 
-            {totals.discountAmount > 0 && (
+            {totals.discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Discount:</span>
                 <span className="text-green-600 font-medium">
-                  -${totals.discountAmount.toFixed(2)}
+                  -${totals.discount.toFixed(2)}
                 </span>
               </div>
             )}
 
-            {totals.taxAmount > 0 && (
+            {totals.tax > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax:</span>
-                <span className="font-medium">${totals.taxAmount.toFixed(2)}</span>
+                <span className="font-medium">${totals.tax.toFixed(2)}</span>
               </div>
             )}
 
