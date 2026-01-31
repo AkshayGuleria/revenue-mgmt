@@ -143,37 +143,48 @@ export function InvoiceForm({
   }, [form]);
 
   const handleSubmit = (data: InvoiceFormData) => {
-    // Calculate totals
+    // Calculate totals and add required amount field for each item
     const items = data.items.map((item) => {
-      const lineTotal =
-        item.quantity * item.unitPrice -
-        (item.discountAmount || 0) +
-        (item.taxAmount || 0);
-      return { ...item, lineTotal };
+      const amount = item.quantity * item.unitPrice; // Required by backend
+      const lineTotal = amount - (item.discountAmount || 0) + (item.taxAmount || 0);
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount, // Backend requires this field
+        productId: item.productId,
+        metadata: item.metadata,
+      };
     });
 
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0
-    );
-    const discountAmount = items.reduce(
+    const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+    const discountAmount = data.items.reduce(
       (sum, item) => sum + (item.discountAmount || 0),
       0
     );
-    const taxAmount = items.reduce(
+    const taxAmount = data.items.reduce(
       (sum, item) => sum + (item.taxAmount || 0),
       0
     );
     const total = subtotal - discountAmount + taxAmount;
 
     const invoiceData = {
-      ...data,
+      invoiceNumber: data.invoiceNumber,
+      accountId: data.accountId,
+      contractId: data.contractId || undefined,
+      issueDate: data.issueDate,
+      dueDate: data.dueDate,
+      status: data.status,
+      currency: data.currency,
+      notes: data.notes,
+      billingAddress: data.billingAddress,
       items,
       subtotal,
-      discountAmount,
-      taxAmount,
+      tax: taxAmount,
+      discount: discountAmount,
       total,
-      amountPaid: invoice?.amountPaid || 0,
+      billingType: "one_time" as const,
+      consolidated: false,
     };
 
     onSubmit(invoiceData);
