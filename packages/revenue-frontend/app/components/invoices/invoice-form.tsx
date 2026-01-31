@@ -51,7 +51,6 @@ const invoiceFormSchema = z.object({
   status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "void"]),
   currency: z.string().default("USD"),
   notes: z.string().optional(),
-  billingAddress: z.string().optional(),
   items: z.array(invoiceItemSchema).min(1, "At least one line item is required"),
   // Invoice-level tax and discount
   tax: z.coerce.number().min(0).default(0),
@@ -101,7 +100,6 @@ export function InvoiceForm({
           status: invoice.status,
           currency: invoice.currency,
           notes: invoice.notes || "",
-          billingAddress: invoice.billingAddress || "",
           items: invoice.items || [],
           tax: invoice.tax || 0,
           discount: invoice.discount || 0,
@@ -117,7 +115,6 @@ export function InvoiceForm({
           status: "draft",
           currency: "USD",
           notes: "",
-          billingAddress: "",
           items: [
             {
               description: "",
@@ -171,7 +168,6 @@ export function InvoiceForm({
       status: data.status,
       currency: data.currency,
       notes: data.notes,
-      billingAddress: data.billingAddress,
       items,
       subtotal,
       tax: data.tax,
@@ -405,20 +401,6 @@ export function InvoiceForm({
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-6">
-            <FormField
-              control={form.control}
-              name="billingAddress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Billing Address</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="notes"
