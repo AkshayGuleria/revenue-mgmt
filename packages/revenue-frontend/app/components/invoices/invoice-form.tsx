@@ -194,16 +194,16 @@ export function InvoiceForm({
 
   const calculateLineTotal = (index: number) => {
     const item = form.watch(`items.${index}`);
-    return item.quantity * item.unitPrice;
+    return Number(item.quantity) * Number(item.unitPrice);
   };
 
   const calculateTotals = () => {
     const items = form.watch("items");
-    const tax = form.watch("tax") || 0;
-    const discount = form.watch("discount") || 0;
+    const tax = Number(form.watch("tax")) || 0;
+    const discount = Number(form.watch("discount")) || 0;
 
     const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
+      (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
       0
     );
     const total = subtotal - discount + tax;
