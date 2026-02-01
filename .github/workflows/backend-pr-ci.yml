@@ -7,7 +7,7 @@ on:
       - master
     paths:
       - 'packages/revenue-backend/**'
-      - '.github/workflows/pr-ci.yml'
+      - '.github/workflows/backend-pr-ci.yml'
   # Allow manual trigger
   workflow_dispatch:
 

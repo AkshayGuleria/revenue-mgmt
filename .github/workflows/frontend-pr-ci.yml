@@ -8,7 +8,7 @@ on:
       - develop
     paths:
       - 'packages/revenue-frontend/**'
-      - '.github/workflows/frontend-ci.yml'
+      - '.github/workflows/frontend-pr-ci.yml'
   push:
     branches:
       - master
