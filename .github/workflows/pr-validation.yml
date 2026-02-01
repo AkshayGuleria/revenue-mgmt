@@ -1,0 +1,122 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Check PR title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const validPrefixes = ['feat:', 'fix:', 'docs:', 'refactor:', 'test:', 'chore:', 'perf:', 'ci:', 'build:', 'revert:'];
+
+            const hasValidPrefix = validPrefixes.some(prefix =>
+              title.toLowerCase().startsWith(prefix)
+            );
+
+            if (!hasValidPrefix) {
+              core.setFailed(
+                `PR title must start with one of: ${validPrefixes.join(', ')}\n` +
+                `Current title: "${title}"`
+              );
+            } else {
+              core.info(`✅ PR title is valid: "${title}"`);
+            }
+
+      - name: Check PR description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const minLength = 50;
+
+            if (body.trim().length < minLength) {
+              core.setFailed(
+                `PR description must be at least ${minLength} characters.\n` +
+                `Current length: ${body.trim().length}`
+              );
+            } else {
+              core.info(`✅ PR description is adequate (${body.trim().length} characters)`);
+            }
+
+      - name: Check for linked issues
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const issuePattern = /#\d+|closes #\d+|fixes #\d+|resolves #\d+/i;
+
+            if (!issuePattern.test(body)) {
+              core.warning('Consider linking related issues using #123, closes #123, fixes #123, or resolves #123');
+            } else {
+              core.info('✅ PR links to related issues');
+            }
+
+      - name: Post validation summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            const body = context.payload.pull_request.body || '';
+            const validPrefixes = ['feat:', 'fix:', 'docs:', 'refactor:', 'test:', 'chore:', 'perf:', 'ci:', 'build:', 'revert:'];
+
+            const titleValid = validPrefixes.some(prefix => title.toLowerCase().startsWith(prefix));
+            const descriptionValid = body.trim().length >= 50;
+            const hasIssueLink = /#\d+|closes #\d+|fixes #\d+|resolves #\d+/i.test(body);
+
+            const comment = `## PR Validation Results
+
+${titleValid ? '✅' : '❌'} **Title Format**: ${titleValid ? 'Valid' : 'Must start with conventional commit prefix'}
+${descriptionValid ? '✅' : '❌'} **Description**: ${descriptionValid ? 'Adequate length' : 'Too short (minimum 50 characters)'}
+${hasIssueLink ? '✅' : '⚠️'} **Issue Links**: ${hasIssueLink ? 'Found' : 'None found (optional but recommended)'}
+
+### Conventional Commit Prefixes
+- \`feat:\` - New feature
+- \`fix:\` - Bug fix
+- \`docs:\` - Documentation changes
+- \`refactor:\` - Code refactoring
+- \`test:\` - Test changes
+- \`chore:\` - Maintenance tasks
+- \`perf:\` - Performance improvements
+- \`ci:\` - CI/CD changes
+- \`build:\` - Build system changes
+- \`revert:\` - Revert previous changes
+            `;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('PR Validation Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: comment
+              });
+            }
