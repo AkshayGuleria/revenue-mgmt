@@ -28,6 +28,7 @@ import {
 } from "~/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
 import { useContracts } from "~/lib/api/hooks/use-contracts";
 import type {
@@ -61,6 +62,15 @@ const invoiceFormSchema = z.object({
 }, {
   message: "Due date must be on or after the issue date",
   path: ["dueDate"],
+}).refine((data) => {
+  const subtotal = data.items.reduce(
+    (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
+    0
+  );
+  return data.discount <= subtotal;
+}, {
+  message: "Discount cannot exceed the subtotal",
+  path: ["discount"],
 });
 
 type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
@@ -98,10 +108,33 @@ export function InvoiceForm({
       : undefined
   );
 
-  const accounts = Array.isArray(accountsData?.data) ? accountsData.data : [];
-  const contracts = Array.isArray(contractsData?.data)
-    ? contractsData.data
-    : [];
+  // Validate accounts data structure
+  const accounts = accountsData?.data;
+  if (accounts && !Array.isArray(accounts)) {
+    console.error("[Invoice Form] Accounts API returned invalid data format", {
+      receivedType: typeof accounts,
+      receivedData: accounts,
+    });
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Data Format Error</AlertTitle>
+        <AlertDescription>
+          The accounts data is in an unexpected format. Please contact support.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Validate contracts data structure
+  const contracts = contractsData?.data;
+  if (contracts && !Array.isArray(contracts)) {
+    console.error("[Invoice Form] Contracts API returned invalid data format", {
+      receivedType: typeof contracts,
+      receivedData: contracts,
+    });
+    toast.warning("Unable to load contracts - data format error");
+  }
 
   // Handle account loading error
   if (accountsError) {
@@ -229,21 +262,56 @@ export function InvoiceForm({
 
   const calculateLineTotal = (index: number) => {
     const item = form.watch(`items.${index}`);
-    return Number(item.quantity) * Number(item.unitPrice);
+    const quantity = Number(item.quantity);
+    const unitPrice = Number(item.unitPrice);
+
+    if (isNaN(quantity) || isNaN(unitPrice)) {
+      console.warn(`[Invoice Form] Invalid number in line item ${index}`, {
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      });
+      return 0;
+    }
+
+    return quantity * unitPrice;
   };
 
   const calculateTotals = () => {
     const items = form.watch("items");
-    const tax = Number(form.watch("tax")) || 0;
-    const discount = Number(form.watch("discount")) || 0;
+    const tax = Number(form.watch("tax"));
+    const discount = Number(form.watch("discount"));
+
+    // Validate tax and discount
+    if (isNaN(tax)) {
+      console.error("[Invoice Form] Invalid tax value", form.watch("tax"));
+      toast.error("Tax amount is invalid");
+    }
+
+    if (isNaN(discount)) {
+      console.error("[Invoice Form] Invalid discount value", form.watch("discount"));
+      toast.error("Discount amount is invalid");
+    }
 
     const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
+      (sum, item) => {
+        const lineTotal = Number(item.quantity) * Number(item.unitPrice);
+        if (isNaN(lineTotal)) {
+          console.warn("[Invoice Form] NaN in line item calculation", item);
+          return sum;
+        }
+        return sum + lineTotal;
+      },
       0
     );
-    const total = subtotal - discount + tax;
 
-    return { subtotal, discount, tax, total };
+    const total = subtotal - (isNaN(discount) ? 0 : discount) + (isNaN(tax) ? 0 : tax);
+
+    return {
+      subtotal,
+      discount: isNaN(discount) ? 0 : discount,
+      tax: isNaN(tax) ? 0 : tax,
+      total,
+    };
   };
 
   const totals = calculateTotals();
@@ -271,7 +339,7 @@ export function InvoiceForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {accounts.map((account) => (
+                      {accounts?.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                           {account.accountName}
                         </SelectItem>
@@ -301,7 +369,7 @@ export function InvoiceForm({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {contracts.map((contract) => (
+                      {contracts?.map((contract) => (
                         <SelectItem key={contract.id} value={contract.id}>
                           {contract.contractName}
                         </SelectItem>
