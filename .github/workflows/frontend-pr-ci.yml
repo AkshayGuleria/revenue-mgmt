@@ -1,4 +1,4 @@
-name: Frontend CI
+name: Frontend PR CI - Tests & Coverage
 
 on:
   pull_request:
