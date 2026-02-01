@@ -7,8 +7,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CreateInvoiceDto, UpdateInvoiceDto, InvoiceStatus } from './dto';
-import { Prisma } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 describe('InvoicesService', () => {
   let service: InvoicesService;

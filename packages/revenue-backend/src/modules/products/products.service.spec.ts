@@ -4,8 +4,6 @@ import { ProductsService } from './products.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { PricingModel } from './dto/create-product.dto';
-import { Prisma } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 describe('ProductsService', () => {
   let service: ProductsService;

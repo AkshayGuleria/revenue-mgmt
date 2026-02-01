@@ -12,8 +12,6 @@ import {
   ContractStatus,
   PaymentTerms,
 } from './dto/create-contract.dto';
-import { Prisma } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 describe('ContractsService', () => {
   let service: ContractsService;
