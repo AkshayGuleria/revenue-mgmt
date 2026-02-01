@@ -369,18 +369,35 @@ test.describe('Invoice Creation', () => {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+    // Fill required fields
+    const accountSelect = page.locator('select[name="accountId"]').or(
+      page.locator('[role="combobox"]').filter({ hasText: /account/i })
+    );
+    if (await accountSelect.count() > 0) {
+      await accountSelect.selectOption({ index: 1 });
+    }
+
     await page.fill('input[name="issueDate"]', today);
     await page.fill('input[name="dueDate"]', yesterday); // Due date before invoice date
 
-    // Blur to trigger validation
-    await page.press('input[name="dueDate"]', 'Tab');
+    // Fill line item
+    await page.fill('input[name*="description"]', 'Test Item');
+    await page.fill('input[name*="quantity"]', '1');
+    await page.fill('input[name*="unitPrice"]', '100');
 
+    // Try to submit the form
+    const submitButton = page.locator('button[type="submit"]').filter({ hasText: /create|save/i });
+    await submitButton.click();
+
+    // Wait for validation to trigger
     await page.waitForTimeout(500);
 
-    // Should show validation error
+    // MUST show validation error
     const errorMessage = page.locator('text=/due date.*after/i');
+    await expect(errorMessage).toBeVisible();
 
-    // Optional validation - may not be implemented yet
+    // Form should still be on the new invoice page (submission prevented)
+    expect(page.url()).toContain('/invoices/new');
   });
 });
 

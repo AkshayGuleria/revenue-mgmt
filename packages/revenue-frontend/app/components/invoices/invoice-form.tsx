@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
 import { useContracts } from "~/lib/api/hooks/use-contracts";
 import type {
@@ -55,6 +56,11 @@ const invoiceFormSchema = z.object({
   // Invoice-level tax and discount
   tax: z.coerce.number().min(0).default(0),
   discount: z.coerce.number().min(0).default(0),
+}).refine((data) => {
+  return new Date(data.dueDate) >= new Date(data.issueDate);
+}, {
+  message: "Due date must be on or after the issue date",
+  path: ["dueDate"],
 });
 
 type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
@@ -76,8 +82,17 @@ export function InvoiceForm({
     invoice?.accountId || ""
   );
 
-  const { data: accountsData } = useAccounts({ "limit[eq]": 100 });
-  const { data: contractsData } = useContracts(
+  const {
+    data: accountsData,
+    error: accountsError,
+    isLoading: accountsLoading
+  } = useAccounts({ "limit[eq]": 100 });
+
+  const {
+    data: contractsData,
+    error: contractsError,
+    isLoading: contractsLoading
+  } = useContracts(
     selectedAccountId
       ? { "accountId[eq]": selectedAccountId, "limit[eq]": 100 }
       : undefined
@@ -87,6 +102,31 @@ export function InvoiceForm({
   const contracts = Array.isArray(contractsData?.data)
     ? contractsData.data
     : [];
+
+  // Handle account loading error
+  if (accountsError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Failed to load accounts</AlertTitle>
+        <AlertDescription>
+          Unable to fetch accounts: {accountsError.message}. Please refresh the page or contact support if the problem persists.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Show loading state for accounts
+  if (accountsLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <p className="mt-2 text-sm text-gray-600">Loading accounts...</p>
+        </div>
+      </div>
+    );
+  }
 
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceFormSchema),
@@ -145,14 +185,13 @@ export function InvoiceForm({
   const handleSubmit = (data: InvoiceFormData) => {
     // Calculate totals and add required amount field for each item
     const items = data.items.map((item) => {
-      const amount = item.quantity * item.unitPrice; // Required by backend
+      const amount = item.quantity * item.unitPrice;
       return {
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         amount, // Backend requires this field
         productId: item.productId,
-        metadata: item.metadata,
       };
     });
 
