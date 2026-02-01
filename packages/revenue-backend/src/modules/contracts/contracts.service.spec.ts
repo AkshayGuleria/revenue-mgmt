@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateContractDto, UpdateContractDto } from './dto';
 import {
   BillingFrequency,

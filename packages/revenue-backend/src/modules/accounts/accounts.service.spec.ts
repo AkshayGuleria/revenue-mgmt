@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateAccountDto, UpdateAccountDto } from './dto';
 import { AccountType, PaymentTerms } from './dto/create-account.dto';
 import { AccountStatus } from './dto/update-account.dto';

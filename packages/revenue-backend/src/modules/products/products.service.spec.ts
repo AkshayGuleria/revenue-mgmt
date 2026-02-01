@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { PricingModel } from './dto/create-product.dto';
 
