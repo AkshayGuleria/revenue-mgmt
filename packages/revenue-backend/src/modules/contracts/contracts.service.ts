@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateContractDto, UpdateContractDto, QueryContractsDto } from './dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { parseQuery } from '../../common/utils/query-parser';
 import {
   buildSingleResponse,
@@ -52,7 +53,7 @@ export class ContractsService {
 
       return buildSingleResponse(contract);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException(
             'Contract with this number already exists',
@@ -187,7 +188,7 @@ export class ContractsService {
 
       return buildSingleResponse(contract);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException(
             'Contract with this number already exists',

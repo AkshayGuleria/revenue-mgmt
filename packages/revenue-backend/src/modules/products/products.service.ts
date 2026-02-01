@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto, QueryProductsDto } from './dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { parseQuery } from '../../common/utils/query-parser';
 import {
   buildSingleResponse,
@@ -25,7 +26,7 @@ export class ProductsService {
 
       return buildSingleResponse(product);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Product with this SKU already exists');
         }
@@ -87,7 +88,7 @@ export class ProductsService {
 
       return buildSingleResponse(product);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Product with this SKU already exists');
         }

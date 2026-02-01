@@ -10,6 +10,7 @@ import { CreateAccountDto, UpdateAccountDto } from './dto';
 import { AccountType, PaymentTerms } from './dto/create-account.dto';
 import { AccountStatus } from './dto/update-account.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 describe('AccountsService', () => {
   let service: AccountsService;
@@ -124,7 +125,7 @@ describe('AccountsService', () => {
     });
 
     it('should throw ConflictException when email already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',
@@ -457,7 +458,7 @@ describe('AccountsService', () => {
     });
 
     it('should throw ConflictException when email already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',

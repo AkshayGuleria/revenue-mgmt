@@ -12,6 +12,7 @@ import {
   CreateInvoiceItemDto,
 } from './dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { parseQuery } from '../../common/utils/query-parser';
 import {
   buildSingleResponse,
@@ -118,7 +119,7 @@ export class InvoicesService {
 
       return buildSingleResponse(invoice);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException(
             'Invoice with this number already exists',
@@ -310,7 +311,7 @@ export class InvoicesService {
 
       return buildSingleResponse(invoice);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException(
             'Invoice with this number already exists',

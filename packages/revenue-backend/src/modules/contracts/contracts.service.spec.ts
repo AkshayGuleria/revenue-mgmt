@@ -13,6 +13,7 @@ import {
   PaymentTerms,
 } from './dto/create-contract.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 describe('ContractsService', () => {
   let service: ContractsService;
@@ -137,7 +138,7 @@ describe('ContractsService', () => {
     });
 
     it('should throw ConflictException when contract number already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',
@@ -413,7 +414,7 @@ describe('ContractsService', () => {
     });
 
     it('should throw ConflictException when contract number already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',
