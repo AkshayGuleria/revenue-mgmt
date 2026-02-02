@@ -6,13 +6,13 @@ import {
 } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateContractDto, UpdateContractDto } from './dto';
 import {
   BillingFrequency,
   ContractStatus,
   PaymentTerms,
 } from './dto/create-contract.dto';
-import { Prisma } from '@prisma/client';
 
 describe('ContractsService', () => {
   let service: ContractsService;
@@ -137,7 +137,7 @@ describe('ContractsService', () => {
     });
 
     it('should throw ConflictException when contract number already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',
@@ -413,7 +413,7 @@ describe('ContractsService', () => {
     });
 
     it('should throw ConflictException when contract number already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',

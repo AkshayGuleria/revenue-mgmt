@@ -3,6 +3,8 @@
  */
 
 import { QueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ApiError } from "./client";
 
 /**
  * Create and configure the QueryClient instance
@@ -28,11 +30,47 @@ export const queryClient = new QueryClient({
 
       // Refetch on reconnect
       refetchOnReconnect: true,
+
+      // Global error handler for queries
+      onError: (error) => {
+        // Log all query errors for debugging
+        if (error instanceof ApiError) {
+          console.error("[React Query - Query Error]", {
+            statusCode: error.statusCode,
+            code: error.code,
+            message: error.message,
+            details: error.details,
+          });
+
+          // Show user-friendly errors for auth failures
+          if (error.statusCode === 401) {
+            toast.error("Your session has expired. Please log in again.");
+          } else if (error.statusCode === 403) {
+            toast.error("You don't have permission to access this resource.");
+          }
+        } else {
+          console.error("[React Query - Unexpected Query Error]", error);
+        }
+      },
     },
     mutations: {
       // Retry mutations once on failure
       retry: 1,
       retryDelay: 1000,
+
+      // Global error handler for mutations
+      onError: (error) => {
+        if (error instanceof ApiError) {
+          console.error("[React Query - Mutation Error]", {
+            statusCode: error.statusCode,
+            code: error.code,
+            message: error.message,
+            details: error.details,
+          });
+        } else {
+          console.error("[React Query - Unexpected Mutation Error]", error);
+        }
+      },
     },
   },
 });

@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateAccountDto, UpdateAccountDto, QueryAccountsDto } from './dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { parseQuery } from '../../common/utils/query-parser';
 import {
   buildSingleResponse,
@@ -51,7 +52,7 @@ export class AccountsService {
 
       return buildSingleResponse(account);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Account with this email already exists');
         }
@@ -192,7 +193,7 @@ export class AccountsService {
 
       return buildSingleResponse(account);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Account with this email already exists');
         }

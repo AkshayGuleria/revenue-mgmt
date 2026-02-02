@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { PricingModel } from './dto/create-product.dto';
-import { Prisma } from '@prisma/client';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -105,7 +105,7 @@ describe('ProductsService', () => {
     });
 
     it('should throw ConflictException when SKU already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',
@@ -328,7 +328,7 @@ describe('ProductsService', () => {
     });
 
     it('should throw ConflictException when SKU already exists', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',

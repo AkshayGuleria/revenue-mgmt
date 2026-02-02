@@ -33,11 +33,16 @@ describe('Consolidated Billing & Shared Contracts (E2E)', () => {
   });
 
   afterAll(async () => {
+    // Wait for any pending jobs to complete before closing
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     await app.close();
     await new Promise((resolve) => setTimeout(resolve, 500));
   });
 
   beforeEach(async () => {
+    // Wait for any background jobs from previous tests to complete
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Clean up database
     await prisma.contractShare.deleteMany();
     await prisma.invoiceItem.deleteMany();

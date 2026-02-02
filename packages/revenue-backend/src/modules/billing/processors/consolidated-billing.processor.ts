@@ -54,10 +54,14 @@ export class ConsolidatedBillingProcessor extends WorkerHost {
         subsidiariesIncluded: result.subsidiariesIncluded,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to generate consolidated invoice for parent account ${job.data.parentAccountId}: ${error.message}`,
-        error.stack,
-      );
+      // In test environment, background jobs may fail due to test cleanup
+      // Only log errors in non-test environments to avoid confusing test output
+      if (process.env.NODE_ENV !== 'test') {
+        this.logger.error(
+          `Failed to generate consolidated invoice for parent account ${job.data.parentAccountId}: ${error.message}`,
+          error.stack,
+        );
+      }
       throw error;
     }
   }

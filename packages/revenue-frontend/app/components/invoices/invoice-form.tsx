@@ -26,7 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
 import { useContracts } from "~/lib/api/hooks/use-contracts";
 import type {
@@ -39,8 +41,6 @@ const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
   unitPrice: z.coerce.number().min(0, "Unit price cannot be negative"),
-  discountAmount: z.coerce.number().min(0).optional(),
-  taxAmount: z.coerce.number().min(0).optional(),
   productId: z.string().optional(),
 });
 
@@ -53,8 +53,24 @@ const invoiceFormSchema = z.object({
   status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "void"]),
   currency: z.string().default("USD"),
   notes: z.string().optional(),
-  billingAddress: z.string().optional(),
   items: z.array(invoiceItemSchema).min(1, "At least one line item is required"),
+  // Invoice-level tax and discount
+  tax: z.coerce.number().min(0).default(0),
+  discount: z.coerce.number().min(0).default(0),
+}).refine((data) => {
+  return new Date(data.dueDate) >= new Date(data.issueDate);
+}, {
+  message: "Due date must be on or after the issue date",
+  path: ["dueDate"],
+}).refine((data) => {
+  const subtotal = data.items.reduce(
+    (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
+    0
+  );
+  return data.discount <= subtotal;
+}, {
+  message: "Discount cannot exceed the subtotal",
+  path: ["discount"],
 });
 
 type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
@@ -76,17 +92,74 @@ export function InvoiceForm({
     invoice?.accountId || ""
   );
 
-  const { data: accountsData } = useAccounts({ "limit[eq]": 100 });
-  const { data: contractsData } = useContracts(
+  const {
+    data: accountsData,
+    error: accountsError,
+    isLoading: accountsLoading
+  } = useAccounts({ "limit[eq]": 100 });
+
+  const {
+    data: contractsData,
+    error: contractsError,
+    isLoading: contractsLoading
+  } = useContracts(
     selectedAccountId
       ? { "accountId[eq]": selectedAccountId, "limit[eq]": 100 }
       : undefined
   );
 
-  const accounts = Array.isArray(accountsData?.data) ? accountsData.data : [];
-  const contracts = Array.isArray(contractsData?.data)
-    ? contractsData.data
-    : [];
+  // Validate accounts data structure
+  const accounts = accountsData?.data;
+  if (accounts && !Array.isArray(accounts)) {
+    console.error("[Invoice Form] Accounts API returned invalid data format", {
+      receivedType: typeof accounts,
+      receivedData: accounts,
+    });
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Data Format Error</AlertTitle>
+        <AlertDescription>
+          The accounts data is in an unexpected format. Please contact support.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Validate contracts data structure
+  const contracts = contractsData?.data;
+  if (contracts && !Array.isArray(contracts)) {
+    console.error("[Invoice Form] Contracts API returned invalid data format", {
+      receivedType: typeof contracts,
+      receivedData: contracts,
+    });
+    toast.warning("Unable to load contracts - data format error");
+  }
+
+  // Handle account loading error
+  if (accountsError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Failed to load accounts</AlertTitle>
+        <AlertDescription>
+          Unable to fetch accounts: {accountsError.message}. Please refresh the page or contact support if the problem persists.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Show loading state for accounts
+  if (accountsLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <p className="mt-2 text-sm text-gray-600">Loading accounts...</p>
+        </div>
+      </div>
+    );
+  }
 
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceFormSchema),
@@ -100,8 +173,9 @@ export function InvoiceForm({
           status: invoice.status,
           currency: invoice.currency,
           notes: invoice.notes || "",
-          billingAddress: invoice.billingAddress || "",
           items: invoice.items || [],
+          tax: invoice.tax || 0,
+          discount: invoice.discount || 0,
         }
       : {
           accountId: "",
@@ -114,16 +188,15 @@ export function InvoiceForm({
           status: "draft",
           currency: "USD",
           notes: "",
-          billingAddress: "",
           items: [
             {
               description: "",
               quantity: 1,
               unitPrice: 0,
-              discountAmount: 0,
-              taxAmount: 0,
             },
           ],
+          tax: 0,
+          discount: 0,
         },
   });
 
@@ -143,37 +216,37 @@ export function InvoiceForm({
   }, [form]);
 
   const handleSubmit = (data: InvoiceFormData) => {
-    // Calculate totals
+    // Calculate totals and add required amount field for each item
     const items = data.items.map((item) => {
-      const lineTotal =
-        item.quantity * item.unitPrice -
-        (item.discountAmount || 0) +
-        (item.taxAmount || 0);
-      return { ...item, lineTotal };
+      const amount = item.quantity * item.unitPrice;
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount, // Backend requires this field
+        productId: item.productId,
+      };
     });
 
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0
-    );
-    const discountAmount = items.reduce(
-      (sum, item) => sum + (item.discountAmount || 0),
-      0
-    );
-    const taxAmount = items.reduce(
-      (sum, item) => sum + (item.taxAmount || 0),
-      0
-    );
-    const total = subtotal - discountAmount + taxAmount;
+    const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+    const total = subtotal - data.discount + data.tax;
 
     const invoiceData = {
-      ...data,
+      invoiceNumber: data.invoiceNumber,
+      accountId: data.accountId,
+      contractId: data.contractId || undefined,
+      issueDate: data.issueDate,
+      dueDate: data.dueDate,
+      status: data.status,
+      currency: data.currency,
+      notes: data.notes,
       items,
       subtotal,
-      discountAmount,
-      taxAmount,
+      tax: data.tax,
+      discount: data.discount,
       total,
-      amountPaid: invoice?.amountPaid || 0,
+      billingType: "one_time" as const,
+      consolidated: false,
     };
 
     onSubmit(invoiceData);
@@ -184,37 +257,61 @@ export function InvoiceForm({
       description: "",
       quantity: 1,
       unitPrice: 0,
-      discountAmount: 0,
-      taxAmount: 0,
     });
   };
 
   const calculateLineTotal = (index: number) => {
     const item = form.watch(`items.${index}`);
-    return (
-      item.quantity * item.unitPrice -
-      (item.discountAmount || 0) +
-      (item.taxAmount || 0)
-    );
+    const quantity = Number(item.quantity);
+    const unitPrice = Number(item.unitPrice);
+
+    if (isNaN(quantity) || isNaN(unitPrice)) {
+      console.warn(`[Invoice Form] Invalid number in line item ${index}`, {
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      });
+      return 0;
+    }
+
+    return quantity * unitPrice;
   };
 
   const calculateTotals = () => {
     const items = form.watch("items");
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0
-    );
-    const discountAmount = items.reduce(
-      (sum, item) => sum + (item.discountAmount || 0),
-      0
-    );
-    const taxAmount = items.reduce(
-      (sum, item) => sum + (item.taxAmount || 0),
-      0
-    );
-    const total = subtotal - discountAmount + taxAmount;
+    const tax = Number(form.watch("tax"));
+    const discount = Number(form.watch("discount"));
 
-    return { subtotal, discountAmount, taxAmount, total };
+    // Validate tax and discount
+    if (isNaN(tax)) {
+      console.error("[Invoice Form] Invalid tax value", form.watch("tax"));
+      toast.error("Tax amount is invalid");
+    }
+
+    if (isNaN(discount)) {
+      console.error("[Invoice Form] Invalid discount value", form.watch("discount"));
+      toast.error("Discount amount is invalid");
+    }
+
+    const subtotal = items.reduce(
+      (sum, item) => {
+        const lineTotal = Number(item.quantity) * Number(item.unitPrice);
+        if (isNaN(lineTotal)) {
+          console.warn("[Invoice Form] NaN in line item calculation", item);
+          return sum;
+        }
+        return sum + lineTotal;
+      },
+      0
+    );
+
+    const total = subtotal - (isNaN(discount) ? 0 : discount) + (isNaN(tax) ? 0 : tax);
+
+    return {
+      subtotal,
+      discount: isNaN(discount) ? 0 : discount,
+      tax: isNaN(tax) ? 0 : tax,
+      total,
+    };
   };
 
   const totals = calculateTotals();
@@ -242,7 +339,7 @@ export function InvoiceForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {accounts.map((account) => (
+                      {accounts?.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                           {account.accountName}
                         </SelectItem>
@@ -272,7 +369,7 @@ export function InvoiceForm({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {contracts.map((contract) => (
+                      {contracts?.map((contract) => (
                         <SelectItem key={contract.id} value={contract.id}>
                           {contract.contractName}
                         </SelectItem>
@@ -368,23 +465,49 @@ export function InvoiceForm({
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-6">
             <FormField
               control={form.control}
-              name="billingAddress"
+              name="tax"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Billing Address</FormLabel>
+                  <FormLabel>Tax Amount</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} />
+                    <Input
+                      type="number"
+                      {...field}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="discount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Discount Amount</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-6">
             <FormField
               control={form.control}
               name="notes"
@@ -479,51 +602,13 @@ export function InvoiceForm({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.discountAmount`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Discount</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            min="0"
-                            step="0.01"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.taxAmount`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tax</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            min="0"
-                            step="0.01"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <div className="text-sm">
-                    <span className="text-gray-600">Line Total: </span>
-                    <span className="font-semibold">
-                      ${calculateLineTotal(index).toFixed(2)}
-                    </span>
+                  <div className="flex items-end">
+                    <div className="text-sm">
+                      <span className="text-gray-600">Amount: </span>
+                      <span className="font-semibold">
+                        ${calculateLineTotal(index).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -539,19 +624,19 @@ export function InvoiceForm({
               <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
             </div>
 
-            {totals.discountAmount > 0 && (
+            {totals.discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Discount:</span>
                 <span className="text-green-600 font-medium">
-                  -${totals.discountAmount.toFixed(2)}
+                  -${totals.discount.toFixed(2)}
                 </span>
               </div>
             )}
 
-            {totals.taxAmount > 0 && (
+            {totals.tax > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax:</span>
-                <span className="font-medium">${totals.taxAmount.toFixed(2)}</span>
+                <span className="font-medium">${totals.tax.toFixed(2)}</span>
               </div>
             )}
 

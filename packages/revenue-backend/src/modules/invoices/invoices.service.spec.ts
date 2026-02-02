@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InvoicesService } from './invoices.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import {
   NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { CreateInvoiceDto, UpdateInvoiceDto, InvoiceStatus } from './dto';
-import { Prisma } from '@prisma/client';
 
 describe('InvoicesService', () => {
   let service: InvoicesService;
@@ -251,7 +251,7 @@ describe('InvoicesService', () => {
         id: 'account-id-123',
       });
 
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',
@@ -427,7 +427,7 @@ describe('InvoicesService', () => {
         id: 'invoice-id-123',
       });
 
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
+      const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed',
         {
           code: 'P2002',
