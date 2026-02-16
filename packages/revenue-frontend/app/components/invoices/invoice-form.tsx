@@ -108,59 +108,7 @@ export function InvoiceForm({
       : undefined
   );
 
-  // Validate accounts data structure
-  const accounts = accountsData?.data;
-  if (accounts && !Array.isArray(accounts)) {
-    console.error("[Invoice Form] Accounts API returned invalid data format", {
-      receivedType: typeof accounts,
-      receivedData: accounts,
-    });
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Data Format Error</AlertTitle>
-        <AlertDescription>
-          The accounts data is in an unexpected format. Please contact support.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Validate contracts data structure
-  const contracts = contractsData?.data;
-  if (contracts && !Array.isArray(contracts)) {
-    console.error("[Invoice Form] Contracts API returned invalid data format", {
-      receivedType: typeof contracts,
-      receivedData: contracts,
-    });
-    toast.warning("Unable to load contracts - data format error");
-  }
-
-  // Handle account loading error
-  if (accountsError) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Failed to load accounts</AlertTitle>
-        <AlertDescription>
-          Unable to fetch accounts: {accountsError.message}. Please refresh the page or contact support if the problem persists.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Show loading state for accounts
-  if (accountsLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-2 text-sm text-gray-600">Loading accounts...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // IMPORTANT: All hooks must be called before any conditional returns
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceFormSchema),
     defaultValues: invoice
@@ -214,6 +162,60 @@ export function InvoiceForm({
     });
     return () => subscription.unsubscribe();
   }, [form]);
+
+  // Now handle conditional rendering AFTER all hooks are called
+  // Validate accounts data structure
+  const accounts = accountsData?.data;
+  if (accounts && !Array.isArray(accounts)) {
+    console.error("[Invoice Form] Accounts API returned invalid data format", {
+      receivedType: typeof accounts,
+      receivedData: accounts,
+    });
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Data Format Error</AlertTitle>
+        <AlertDescription>
+          The accounts data is in an unexpected format. Please contact support.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Validate contracts data structure
+  const contracts = contractsData?.data;
+  if (contracts && !Array.isArray(contracts)) {
+    console.error("[Invoice Form] Contracts API returned invalid data format", {
+      receivedType: typeof contracts,
+      receivedData: contracts,
+    });
+    toast.warning("Unable to load contracts - data format error");
+  }
+
+  // Handle account loading error
+  if (accountsError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Failed to load accounts</AlertTitle>
+        <AlertDescription>
+          Unable to fetch accounts: {accountsError.message}. Please refresh the page or contact support if the problem persists.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Show loading state for accounts
+  if (accountsLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <p className="mt-2 text-sm text-gray-600">Loading accounts...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = (data: InvoiceFormData) => {
     // Calculate totals and add required amount field for each item
