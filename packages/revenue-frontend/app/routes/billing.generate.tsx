@@ -37,9 +37,8 @@ import {
 
 const generateFormSchema = z.object({
   contractId: z.string().min(1, "Contract is required"),
-  billingPeriodStart: z.string().min(1, "Billing period start is required"),
-  billingPeriodEnd: z.string().min(1, "Billing period end is required"),
-  async: z.boolean().default(false),
+  periodStart: z.string().min(1, "Billing period start is required"),
+  periodEnd: z.string().min(1, "Billing period end is required"),
 });
 
 type GenerateFormData = z.infer<typeof generateFormSchema>;
@@ -60,11 +59,10 @@ export default function GenerateInvoiceRoute() {
     resolver: zodResolver(generateFormSchema),
     defaultValues: {
       contractId: "",
-      billingPeriodStart: new Date().toISOString().split("T")[0],
-      billingPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      periodStart: new Date().toISOString().split("T")[0],
+      periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
-      async: false,
     },
   });
 
@@ -135,7 +133,7 @@ export default function GenerateInvoiceRoute() {
 
               <FormField
                 control={form.control}
-                name="billingPeriodStart"
+                name="periodStart"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Billing Period Start *</FormLabel>
@@ -152,7 +150,7 @@ export default function GenerateInvoiceRoute() {
 
               <FormField
                 control={form.control}
-                name="billingPeriodEnd"
+                name="periodEnd"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Billing Period End *</FormLabel>

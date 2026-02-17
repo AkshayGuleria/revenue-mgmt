@@ -28,7 +28,6 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
-import { Textarea } from "~/components/ui/textarea";
 import { toast } from "sonner";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
 import {
@@ -39,12 +38,9 @@ import { Layers } from "lucide-react";
 
 const consolidatedFormSchema = z.object({
   parentAccountId: z.string().min(1, "Parent account is required"),
-  billingPeriodStart: z.string().min(1, "Billing period start is required"),
-  billingPeriodEnd: z.string().min(1, "Billing period end is required"),
-  includeSubsidiaries: z.boolean().default(true),
-  billingAddress: z.string().optional(),
-  notes: z.string().optional(),
-  async: z.boolean().default(false),
+  periodStart: z.string().min(1, "Billing period start is required"),
+  periodEnd: z.string().min(1, "Billing period end is required"),
+  includeChildren: z.boolean().default(true),
 });
 
 type ConsolidatedFormData = z.infer<typeof consolidatedFormSchema>;
@@ -58,9 +54,9 @@ export default function ConsolidatedBillingRoute() {
   });
   const accounts = Array.isArray(accountsData?.data) ? accountsData.data : [];
 
-  // Filter parent accounts (accounts with children)
+  // Filter root accounts (no parent = potential parent accounts for consolidated billing)
   const parentAccounts = accounts.filter(
-    (account) => account.accountType === "parent" || account.accountType === "both"
+    (account) => !account.parentAccountId
   );
 
   const generateConsolidated = useGenerateConsolidatedInvoice();
@@ -70,14 +66,11 @@ export default function ConsolidatedBillingRoute() {
     resolver: zodResolver(consolidatedFormSchema),
     defaultValues: {
       parentAccountId: "",
-      billingPeriodStart: new Date().toISOString().split("T")[0],
-      billingPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      periodStart: new Date().toISOString().split("T")[0],
+      periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
-      includeSubsidiaries: true,
-      billingAddress: "",
-      notes: "",
-      async: false,
+      includeChildren: true,
     },
   });
 
@@ -158,7 +151,7 @@ export default function ConsolidatedBillingRoute() {
 
               <FormField
                 control={form.control}
-                name="billingPeriodStart"
+                name="periodStart"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Billing Period Start *</FormLabel>
@@ -175,7 +168,7 @@ export default function ConsolidatedBillingRoute() {
 
               <FormField
                 control={form.control}
-                name="billingPeriodEnd"
+                name="periodEnd"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Billing Period End *</FormLabel>
@@ -190,39 +183,21 @@ export default function ConsolidatedBillingRoute() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="billingAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Billing Address (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={3} />
-                    </FormControl>
-                    <FormDescription>
-                      Override the default billing address
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={3} />
-                    </FormControl>
-                    <FormDescription>
-                      Additional notes for the consolidated invoice
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="includeChildren"
+                  checked={form.watch("includeChildren")}
+                  onChange={(e) => form.setValue("includeChildren", e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="includeChildren" className="text-sm font-medium">
+                  Include subsidiary accounts
+                  <p className="text-xs text-gray-600 font-normal mt-1">
+                    Include all child accounts in the consolidated invoice
+                  </p>
+                </label>
+              </div>
 
               <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                 <input

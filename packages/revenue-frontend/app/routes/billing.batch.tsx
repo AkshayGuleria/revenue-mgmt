@@ -32,11 +32,9 @@ import { useBatchBilling } from "~/lib/api/hooks/use-billing";
 import { AlertCircle } from "lucide-react";
 
 const batchFormSchema = z.object({
-  billingPeriodStart: z.string().min(1, "Billing period start is required"),
-  billingPeriodEnd: z.string().min(1, "Billing period end is required"),
-  accountIds: z.string().optional(),
-  contractStatus: z
-    .enum(["active", "inactive", "expired", "cancelled"])
+  billingDate: z.string().optional(),
+  billingPeriod: z
+    .enum(["monthly", "quarterly", "annual"])
     .optional(),
 });
 
@@ -49,25 +47,14 @@ export default function BatchBillingRoute() {
   const form = useForm<BatchFormData>({
     resolver: zodResolver(batchFormSchema),
     defaultValues: {
-      billingPeriodStart: new Date().toISOString().split("T")[0],
-      billingPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-      accountIds: "",
-      contractStatus: undefined,
+      billingDate: new Date().toISOString().split("T")[0],
+      billingPeriod: undefined,
     },
   });
 
   const handleSubmit = async (data: BatchFormData) => {
     try {
-      const payload = {
-        ...data,
-        accountIds: data.accountIds
-          ? data.accountIds.split(",").map((id) => id.trim())
-          : undefined,
-      };
-
-      const response = await batchBilling.mutateAsync(payload);
+      const response = await batchBilling.mutateAsync(data);
       toast.success("Batch billing job queued");
       navigate(`/billing/jobs/${response.data.jobId}`);
     } catch (error) {
@@ -103,15 +90,15 @@ export default function BatchBillingRoute() {
             >
               <FormField
                 control={form.control}
-                name="billingPeriodStart"
+                name="billingDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Billing Period Start *</FormLabel>
+                    <FormLabel>Billing Date (Optional)</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Start date of the billing period
+                      Date to use for billing (defaults to today)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -120,67 +107,28 @@ export default function BatchBillingRoute() {
 
               <FormField
                 control={form.control}
-                name="billingPeriodEnd"
+                name="billingPeriod"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Billing Period End *</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      End date of the billing period
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contractStatus"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contract Status (Optional)</FormLabel>
+                    <FormLabel>Billing Period (Optional)</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(value === "all" ? undefined : value)}
                       defaultValue={field.value || "all"}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="All statuses" />
+                          <SelectValue placeholder="All periods" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="all">All periods</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="annual">Annual</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Filter contracts by status (default: all)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="accountIds"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Account IDs (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="acc-123, acc-456, acc-789"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Comma-separated list of account IDs to bill (leave empty
-                      for all accounts)
+                      Filter contracts by billing period (default: all)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
