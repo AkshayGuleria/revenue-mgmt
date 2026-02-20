@@ -22,6 +22,22 @@ export enum BillingInterval {
   ANNUAL = 'annual',
 }
 
+export enum ChargeType {
+  RECURRING = 'recurring',
+  ONE_TIME = 'one_time',
+  USAGE_BASED = 'usage_based', // Phase 6 — field accepted, billing logic deferred
+}
+
+export enum ProductCategory {
+  PLATFORM = 'platform',
+  SEATS = 'seats',
+  ADDON = 'addon',
+  SUPPORT = 'support',
+  PROFESSIONAL_SERVICES = 'professional_services',
+  STORAGE = 'storage', // Phase 6
+  API = 'api', // Phase 6
+}
+
 export class CreateProductDto {
   @ApiProperty({
     description: 'Product name',
@@ -73,6 +89,53 @@ export class CreateProductDto {
   currency?: string;
 
   @ApiPropertyOptional({
+    description: 'Charge type: recurring (auto-billed), one_time (first invoice only), usage_based (Phase 6)',
+    enum: ChargeType,
+    default: ChargeType.RECURRING,
+    example: ChargeType.RECURRING,
+  })
+  @IsOptional()
+  @IsEnum(ChargeType)
+  chargeType?: ChargeType;
+
+  @ApiPropertyOptional({
+    description: 'Product category for invoice grouping and reporting',
+    enum: ProductCategory,
+    default: ProductCategory.PLATFORM,
+    example: ProductCategory.PLATFORM,
+  })
+  @IsOptional()
+  @IsEnum(ProductCategory)
+  category?: ProductCategory;
+
+  @ApiPropertyOptional({
+    description: 'One-time setup fee added to the first invoice only',
+    example: 500.00,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  setupFee?: number;
+
+  @ApiPropertyOptional({
+    description: 'Number of trial days before billing begins',
+    example: 14,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  trialPeriodDays?: number;
+
+  @ApiPropertyOptional({
+    description: 'Minimum contract commitment in months',
+    example: 12,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  minCommitmentMonths?: number;
+
+  @ApiPropertyOptional({
     description: 'Minimum number of seats',
     example: 1,
     default: 1,
@@ -113,7 +176,7 @@ export class CreateProductDto {
   volumeTiers?: any; // JSON field - can be array or object
 
   @ApiPropertyOptional({
-    description: 'Billing interval',
+    description: 'Billing interval (required when chargeType is recurring)',
     enum: BillingInterval,
     example: BillingInterval.MONTHLY,
   })

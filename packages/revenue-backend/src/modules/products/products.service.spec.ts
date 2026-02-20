@@ -4,7 +4,7 @@ import { ProductsService } from './products.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CreateProductDto, UpdateProductDto } from './dto';
-import { PricingModel } from './dto/create-product.dto';
+import { PricingModel, ChargeType, ProductCategory } from './dto/create-product.dto';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -80,6 +80,101 @@ describe('ProductsService', () => {
       expect(mockPrismaService.product.create).toHaveBeenCalledWith({
         data: createProductDto,
       });
+    });
+
+    it('should create recurring product with all Phase 3.5 fields', async () => {
+      const recurringProductDto: CreateProductDto = {
+        name: 'Professional Plan',
+        sku: 'PLAN-PRO',
+        pricingModel: PricingModel.SEAT_BASED,
+        chargeType: ChargeType.RECURRING,
+        category: ProductCategory.PLATFORM,
+        basePrice: 79.99,
+        billingInterval: undefined,
+        setupFee: 500,
+        trialPeriodDays: undefined,
+        minCommitmentMonths: undefined,
+        minSeats: 5,
+      };
+
+      const mockRecurringProduct = {
+        id: 'product-pro',
+        ...recurringProductDto,
+        currency: 'USD',
+        active: true,
+        isAddon: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.product.create.mockResolvedValue(mockRecurringProduct);
+
+      const result = await service.create(recurringProductDto);
+
+      expect(result.data).toMatchObject({
+        chargeType: 'recurring',
+        category: 'platform',
+        setupFee: 500,
+      });
+    });
+
+    it('should create one_time product without billingInterval', async () => {
+      const oneTimeDto: CreateProductDto = {
+        name: 'Onboarding Package',
+        sku: 'SVC-ONBOARDING',
+        pricingModel: PricingModel.FLAT_FEE,
+        chargeType: ChargeType.ONE_TIME,
+        category: ProductCategory.PROFESSIONAL_SERVICES,
+        basePrice: 5000,
+      };
+
+      const mockOneTimeProduct = {
+        id: 'product-onboarding',
+        ...oneTimeDto,
+        billingInterval: null,
+        currency: 'USD',
+        active: true,
+        isAddon: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.product.create.mockResolvedValue(mockOneTimeProduct);
+
+      const result = await service.create(oneTimeDto);
+
+      expect(result.data).toMatchObject({
+        chargeType: 'one_time',
+        category: 'professional_services',
+        billingInterval: null,
+      });
+    });
+
+    it('should create usage_based product (billing deferred to Phase 6)', async () => {
+      const usageDto: CreateProductDto = {
+        name: 'Extra Storage',
+        sku: 'STORAGE-GB',
+        pricingModel: PricingModel.CUSTOM,
+        chargeType: ChargeType.USAGE_BASED,
+        category: ProductCategory.STORAGE,
+        basePrice: 0.10,
+      };
+
+      const mockUsageProduct = {
+        id: 'product-storage',
+        ...usageDto,
+        currency: 'USD',
+        active: true,
+        isAddon: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.product.create.mockResolvedValue(mockUsageProduct);
+
+      const result = await service.create(usageDto);
+
+      expect(result.data.chargeType).toBe('usage_based');
     });
 
     it('should create product with volume tiers', async () => {
@@ -231,6 +326,83 @@ describe('ProductsService', () => {
           },
         }),
       );
+    });
+
+    it('should filter products by chargeType[eq]=recurring', async () => {
+      const query = { 'chargeType[eq]': 'recurring' };
+
+      mockPrismaService.product.findMany.mockResolvedValue(mockProducts);
+      mockPrismaService.product.count.mockResolvedValue(2);
+
+      await service.findAll(query);
+
+      expect(mockPrismaService.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { chargeType: 'recurring' },
+        }),
+      );
+    });
+
+    it('should filter products by chargeType[eq]=one_time', async () => {
+      const oneTimeProducts = [
+        { id: 'p1', name: 'Onboarding Package', chargeType: 'one_time', category: 'professional_services' },
+      ];
+      const query = { 'chargeType[eq]': 'one_time' };
+
+      mockPrismaService.product.findMany.mockResolvedValue(oneTimeProducts);
+      mockPrismaService.product.count.mockResolvedValue(1);
+
+      const result = await service.findAll(query);
+
+      expect(result.data).toHaveLength(1);
+      expect(mockPrismaService.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { chargeType: 'one_time' },
+        }),
+      );
+    });
+
+    it('should filter products by category[eq]=addon', async () => {
+      const addonProducts = [
+        { id: 'p1', name: 'AI Assistant', chargeType: 'recurring', category: 'addon' },
+      ];
+      const query = { 'category[eq]': 'addon' };
+
+      mockPrismaService.product.findMany.mockResolvedValue(addonProducts);
+      mockPrismaService.product.count.mockResolvedValue(1);
+
+      await service.findAll(query);
+
+      expect(mockPrismaService.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { category: 'addon' },
+        }),
+      );
+    });
+
+    it('should filter by combined chargeType and category', async () => {
+      const query = {
+        'chargeType[eq]': 'one_time',
+        'category[eq]': 'professional_services',
+      };
+
+      mockPrismaService.product.findMany.mockResolvedValue([]);
+      mockPrismaService.product.count.mockResolvedValue(0);
+
+      await service.findAll(query);
+
+      // Query parser wraps multiple filters in AND
+      const call = mockPrismaService.product.findMany.mock.calls[0][0];
+      const where = call.where;
+      // Accepts either direct fields or AND-wrapped structure
+      const hasChargeType =
+        where.chargeType === 'one_time' ||
+        (where.AND && where.AND.some((c: any) => c.chargeType === 'one_time'));
+      const hasCategory =
+        where.category === 'professional_services' ||
+        (where.AND && where.AND.some((c: any) => c.category === 'professional_services'));
+      expect(hasChargeType).toBe(true);
+      expect(hasCategory).toBe(true);
     });
   });
 

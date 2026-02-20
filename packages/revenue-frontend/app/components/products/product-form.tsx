@@ -24,15 +24,25 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import type { Product, CreateProductDto, UpdateProductDto } from "~/types/models";
-import { PricingModel, BillingInterval } from "~/types/models";
+import {
+  PricingModel,
+  BillingInterval,
+  ChargeType,
+  ProductCategory,
+} from "~/types/models";
 
 const productFormSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
   sku: z.string().optional(),
   pricingModel: z.nativeEnum(PricingModel),
-  basePrice: z.coerce.number().positive().optional(),
+  basePrice: z.coerce.number().min(0).optional(),
   currency: z.string().optional(),
+  chargeType: z.nativeEnum(ChargeType),
+  category: z.nativeEnum(ProductCategory),
+  setupFee: z.coerce.number().min(0).optional(),
+  trialPeriodDays: z.coerce.number().int().min(0).optional(),
+  minCommitmentMonths: z.coerce.number().int().min(1).optional(),
   minSeats: z.coerce.number().int().positive().optional(),
   maxSeats: z.coerce.number().int().positive().optional(),
   seatIncrement: z.coerce.number().int().positive().optional(),
@@ -67,6 +77,11 @@ export function ProductForm({
       pricingModel: product?.pricingModel || PricingModel.SEAT_BASED,
       basePrice: product?.basePrice,
       currency: product?.currency || "USD",
+      chargeType: product?.chargeType || ChargeType.RECURRING,
+      category: product?.category || ProductCategory.PLATFORM,
+      setupFee: product?.setupFee,
+      trialPeriodDays: product?.trialPeriodDays,
+      minCommitmentMonths: product?.minCommitmentMonths,
       minSeats: product?.minSeats || 1,
       maxSeats: product?.maxSeats,
       seatIncrement: product?.seatIncrement || 1,
@@ -76,13 +91,25 @@ export function ProductForm({
     },
   });
 
+  const chargeType = form.watch("chargeType");
+  const pricingModel = form.watch("pricingModel");
+
+  const isOneTime = chargeType === ChargeType.ONE_TIME;
+  const isUsageBased = chargeType === ChargeType.USAGE_BASED;
+  const isSeatBased = pricingModel === PricingModel.SEAT_BASED;
+
   const handleSubmit = (values: ProductFormValues) => {
+    // Strip billingInterval for one_time products
+    if (values.chargeType === ChargeType.ONE_TIME) {
+      values.billingInterval = undefined;
+    }
     onSubmit(values as CreateProductDto | UpdateProductDto);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+        {/* ── Basic Information ─────────────────────────────────────────── */}
         <div className="space-y-6">
           <h3 className="text-lg font-medium">Basic Information</h3>
 
@@ -126,7 +153,7 @@ export function ProductForm({
                 <FormItem>
                   <FormLabel>SKU</FormLabel>
                   <FormControl>
-                    <Input placeholder="PROD-ENT-001" {...field} />
+                    <Input placeholder="PLAN-PRO-001" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -149,6 +176,84 @@ export function ProductForm({
           </div>
         </div>
 
+        {/* ── Charge Type & Category ────────────────────────────────────── */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-medium">Charge Type &amp; Category</h3>
+
+          <div className="grid grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="chargeType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Charge Type *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select charge type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={ChargeType.RECURRING}>Recurring</SelectItem>
+                      <SelectItem value={ChargeType.ONE_TIME}>One-Time</SelectItem>
+                      <SelectItem value={ChargeType.USAGE_BASED}>Usage-Based (Phase 6)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {isOneTime
+                      ? "Billed once on the first invoice."
+                      : isUsageBased
+                        ? "Billing deferred to Phase 6."
+                        : "Auto-billed each billing interval."}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={ProductCategory.PLATFORM}>Platform</SelectItem>
+                      <SelectItem value={ProductCategory.SEATS}>Seats</SelectItem>
+                      <SelectItem value={ProductCategory.ADDON}>Add-on</SelectItem>
+                      <SelectItem value={ProductCategory.SUPPORT}>Support</SelectItem>
+                      <SelectItem value={ProductCategory.PROFESSIONAL_SERVICES}>
+                        Professional Services
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Used for invoice line item grouping and reporting.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {isUsageBased && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <p className="font-medium">Usage-Based Billing — Phase 6</p>
+              <p className="mt-1">
+                This product will be stored in the catalog but no invoices will be generated
+                until usage-based billing is activated in Phase 6.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Pricing Configuration ─────────────────────────────────────── */}
         <div className="space-y-6">
           <h3 className="text-lg font-medium">Pricing Configuration</h3>
 
@@ -159,7 +264,7 @@ export function ProductForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Pricing Model *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select model" />
@@ -177,29 +282,34 @@ export function ProductForm({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="billingInterval"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Billing Interval</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select interval" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={BillingInterval.MONTHLY}>Monthly</SelectItem>
-                      <SelectItem value={BillingInterval.QUARTERLY}>Quarterly</SelectItem>
-                      <SelectItem value={BillingInterval.SEMI_ANNUAL}>Semi-Annual</SelectItem>
-                      <SelectItem value={BillingInterval.ANNUAL}>Annual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* billingInterval hidden for one_time products */}
+            {!isOneTime && (
+              <FormField
+                control={form.control}
+                name="billingInterval"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Billing Interval{chargeType === ChargeType.RECURRING ? " *" : ""}
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select interval" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={BillingInterval.MONTHLY}>Monthly</SelectItem>
+                        <SelectItem value={BillingInterval.QUARTERLY}>Quarterly</SelectItem>
+                        <SelectItem value={BillingInterval.SEMI_ANNUAL}>Semi-Annual</SelectItem>
+                        <SelectItem value={BillingInterval.ANNUAL}>Annual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
 
           <FormField
@@ -209,28 +319,46 @@ export function ProductForm({
               <FormItem>
                 <FormLabel>Base Price</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="99.00" {...field} value={field.value || ""} />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="99.00"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
                 </FormControl>
-                <FormDescription>Base price per billing interval</FormDescription>
+                <FormDescription>
+                  {isOneTime
+                    ? "Total one-time charge amount."
+                    : "Price per billing interval."}
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
+        {/* ── Subscription & Commitment ─────────────────────────────────── */}
         <div className="space-y-6">
-          <h3 className="text-lg font-medium">Seat Configuration (For Seat-Based Pricing)</h3>
+          <h3 className="text-lg font-medium">Subscription &amp; Commitment</h3>
 
           <div className="grid grid-cols-3 gap-6">
             <FormField
               control={form.control}
-              name="minSeats"
+              name="setupFee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Minimum Seats</FormLabel>
+                  <FormLabel>Setup Fee</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="1" {...field} value={field.value || ""} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="500.00"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
                   </FormControl>
+                  <FormDescription>One-time fee added to first invoice.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -238,13 +366,19 @@ export function ProductForm({
 
             <FormField
               control={form.control}
-              name="maxSeats"
+              name="trialPeriodDays"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Maximum Seats</FormLabel>
+                  <FormLabel>Trial Period (days)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="1000" {...field} value={field.value || ""} />
+                    <Input
+                      type="number"
+                      placeholder="14"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
                   </FormControl>
+                  <FormDescription>Days before billing begins.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -252,13 +386,19 @@ export function ProductForm({
 
             <FormField
               control={form.control}
-              name="seatIncrement"
+              name="minCommitmentMonths"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Seat Increment</FormLabel>
+                  <FormLabel>Min. Commitment (months)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="1" {...field} value={field.value || ""} />
+                    <Input
+                      type="number"
+                      placeholder="12"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
                   </FormControl>
+                  <FormDescription>Minimum contract length.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -266,6 +406,73 @@ export function ProductForm({
           </div>
         </div>
 
+        {/* ── Seat Configuration (seat_based only) ──────────────────────── */}
+        {isSeatBased && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium">Seat Configuration</h3>
+
+            <div className="grid grid-cols-3 gap-6">
+              <FormField
+                control={form.control}
+                name="minSeats"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimum Seats</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="maxSeats"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maximum Seats</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1000"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="seatIncrement"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Seat Increment</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Options ───────────────────────────────────────────────────── */}
         <div className="space-y-6">
           <h3 className="text-lg font-medium">Options</h3>
 
@@ -310,8 +517,16 @@ export function ProductForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading} className="hover:scale-105 active:scale-95 transition-transform duration-200">
-            {isLoading ? "Saving..." : mode === "create" ? "Create Product" : "Update Product"}
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="hover:scale-105 active:scale-95 transition-transform duration-200"
+          >
+            {isLoading
+              ? "Saving..."
+              : mode === "create"
+                ? "Create Product"
+                : "Update Product"}
           </Button>
         </div>
       </form>

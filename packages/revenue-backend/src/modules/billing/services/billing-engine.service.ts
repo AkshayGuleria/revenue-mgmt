@@ -15,6 +15,16 @@ export interface InvoiceGenerationResult {
   total: Decimal;
 }
 
+/**
+ * Minimal product shape needed by billing logic.
+ * Populated from Phase 4 ContractLineItems; currently null (no product-contract link).
+ */
+export interface BillableProduct {
+  chargeType: string; // 'recurring' | 'one_time' | 'usage_based'
+  setupFee: Decimal | null;
+  trialPeriodDays: number | null;
+}
+
 @Injectable()
 export class BillingEngineService {
   constructor(
@@ -23,19 +33,16 @@ export class BillingEngineService {
   ) {}
 
   /**
-   * Generate invoice from contract
+   * Generate invoice from contract.
    */
   async generateInvoiceFromContract(
     params: GenerateInvoiceParams,
   ): Promise<InvoiceGenerationResult> {
     const { contractId, periodStart, periodEnd } = params;
 
-    // Fetch contract with account details
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
-      include: {
-        account: true,
-      },
+      include: { account: true },
     });
 
     if (!contract) {
@@ -46,27 +53,38 @@ export class BillingEngineService {
       throw new Error(`Contract ${contractId} is not active`);
     }
 
-    // Calculate billing period
     const billingPeriod = this.calculateBillingPeriod(
       contract,
       periodStart,
       periodEnd,
     );
 
-    // Calculate invoice amounts
-    const amounts = await this.calculateInvoiceAmounts(contract);
+    // Phase 4: product will be resolved from ContractLineItem.
+    // Until then, pass null — all existing contracts default to recurring behaviour.
+    const product: BillableProduct | null = null;
 
-    // Generate invoice number
+    // Skip if product rules say we should not bill this period
+    if (!this.shouldBillProduct(product, contract.startDate, billingPeriod.start)) {
+      throw new Error(
+        `Product billing skipped for period ${billingPeriod.start.toISOString()} ` +
+          `(usage_based, trial, or one_time after first period)`,
+      );
+    }
+
+    const amounts = await this.calculateInvoiceAmounts(
+      contract,
+      product,
+      billingPeriod.start,
+    );
+
     const invoiceNumber = await this.generateInvoiceNumber();
 
-    // Calculate due date based on payment terms
     const issueDate = new Date();
     const dueDate = this.calculateDueDate(
       issueDate,
       contract.account.paymentTermsDays,
     );
 
-    // Create invoice with transaction
     const invoice = await this.prisma.$transaction(async (tx) => {
       const newInvoice = await tx.invoice.create({
         data: {
@@ -87,7 +105,6 @@ export class BillingEngineService {
         },
       });
 
-      // Create invoice items
       await tx.invoiceItem.createMany({
         data: amounts.lineItems.map((item) => ({
           invoiceId: newInvoice.id,
@@ -108,9 +125,74 @@ export class BillingEngineService {
     };
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Product charge-type logic (ADR-004 / Phase 3.5)
+  // ──────────────────────────────────────────────────────────────────────────
+
   /**
-   * Calculate billing period based on contract frequency
+   * Determine whether a product should generate a line item for the given period.
+   *
+   * Rules (ADR-004):
+   *  - null / undefined product  → treat as recurring (backward compat)
+   *  - usage_based               → always skip (Phase 6)
+   *  - trial period active       → skip
+   *  - one_time                  → only bill on the first period
+   *  - recurring                 → always bill
    */
+  shouldBillProduct(
+    product: BillableProduct | null,
+    contractStartDate: Date,
+    periodStart: Date,
+  ): boolean {
+    if (!product) return true; // no product linked → recurring by default
+
+    if (product.chargeType === 'usage_based') return false;
+
+    // Respect trial period
+    const trialDays = product.trialPeriodDays ?? 0;
+    if (trialDays > 0) {
+      const trialEnd = new Date(contractStartDate);
+      trialEnd.setDate(trialEnd.getDate() + trialDays);
+      if (periodStart < trialEnd) return false;
+    }
+
+    if (product.chargeType === 'one_time') {
+      return this.isFirstBillingPeriod(contractStartDate, periodStart);
+    }
+
+    return true; // recurring
+  }
+
+  /**
+   * Return the setup fee if this is the first billing period, 0 otherwise.
+   */
+  getSetupFee(
+    product: BillableProduct | null,
+    contractStartDate: Date,
+    periodStart: Date,
+  ): Decimal {
+    if (!product || !product.setupFee) return new Decimal(0);
+    if (this.isFirstBillingPeriod(contractStartDate, periodStart)) {
+      return product.setupFee;
+    }
+    return new Decimal(0);
+  }
+
+  /**
+   * True when periodStart falls within the same calendar month as the contract start.
+   * Used to determine "first invoice" for one_time billing and setup fees.
+   */
+  isFirstBillingPeriod(contractStartDate: Date, periodStart: Date): boolean {
+    return (
+      contractStartDate.getFullYear() === periodStart.getFullYear() &&
+      contractStartDate.getMonth() === periodStart.getMonth()
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Private helpers
+  // ──────────────────────────────────────────────────────────────────────────
+
   private calculateBillingPeriod(
     contract: any,
     periodStart?: Date,
@@ -123,7 +205,6 @@ export class BillingEngineService {
     const now = new Date();
     const start = periodStart || now;
 
-    // Calculate period end based on billing frequency
     let end: Date;
     switch (contract.billingFrequency) {
       case 'monthly':
@@ -146,10 +227,11 @@ export class BillingEngineService {
     return { start, end };
   }
 
-  /**
-   * Calculate invoice amounts including seat-based pricing
-   */
-  private async calculateInvoiceAmounts(contract: any) {
+  private async calculateInvoiceAmounts(
+    contract: any,
+    product: BillableProduct | null,
+    periodStart: Date,
+  ) {
     const lineItems: Array<{
       description: string;
       quantity: Decimal;
@@ -164,7 +246,7 @@ export class BillingEngineService {
       const seatPricing = this.seatCalculator.calculateSeatPricing(
         contract.seatCount,
         contract.seatPrice,
-        null, // TODO: Fetch volume tiers from product
+        null,
       );
 
       lineItems.push({
@@ -176,7 +258,6 @@ export class BillingEngineService {
 
       subtotal = subtotal.add(seatPricing.subtotal);
     } else {
-      // Fixed contract value
       const periodAmount = this.calculatePeriodAmount(
         contract.contractValue,
         contract.billingFrequency,
@@ -192,27 +273,25 @@ export class BillingEngineService {
       subtotal = subtotal.add(periodAmount);
     }
 
-    // Calculate tax (0 for now, will be implemented in Phase 4)
+    // Setup fee on first invoice (Phase 3.5)
+    const setupFee = this.getSetupFee(product, contract.startDate, periodStart);
+    if (setupFee.greaterThan(0)) {
+      lineItems.push({
+        description: 'Setup Fee (one-time)',
+        quantity: new Decimal(1),
+        unitPrice: setupFee,
+        amount: setupFee,
+      });
+      subtotal = subtotal.add(setupFee);
+    }
+
     const tax = new Decimal(0);
-
-    // Calculate discount (0 for now, will be enhanced later)
     const discount = new Decimal(0);
-
-    // Calculate total
     const total = subtotal.add(tax).sub(discount);
 
-    return {
-      lineItems,
-      subtotal,
-      tax,
-      discount,
-      total,
-    };
+    return { lineItems, subtotal, tax, discount, total };
   }
 
-  /**
-   * Calculate period amount based on contract value and frequency
-   */
   private calculatePeriodAmount(
     contractValue: Decimal,
     frequency: string,
@@ -229,9 +308,6 @@ export class BillingEngineService {
     }
   }
 
-  /**
-   * Generate unique invoice number
-   */
   private async generateInvoiceNumber(): Promise<string> {
     const year = new Date().getFullYear();
     const count = await this.prisma.invoice.count({
@@ -246,9 +322,6 @@ export class BillingEngineService {
     return `INV-${year}-${nextNumber}`;
   }
 
-  /**
-   * Calculate due date based on payment terms
-   */
   private calculateDueDate(issueDate: Date, paymentTermsDays: number): Date {
     const dueDate = new Date(issueDate);
     dueDate.setDate(dueDate.getDate() + paymentTermsDays);

@@ -137,6 +137,10 @@ model Product {
   basePrice           Decimal?  @map("base_price") @db.Decimal(10, 2)
   currency            String    @default("USD")
 
+  // Charge Type & Category (Phase 3.5)
+  chargeType          String    @default("recurring") @map("charge_type") // recurring | one_time | usage_based
+  category            String    @default("platform") @map("category") // platform | seats | addon | support | professional_services | storage | api
+
   // Seat-Based Configuration
   minSeats            Int       @default(1) @map("min_seats")
   maxSeats            Int?      @map("max_seats")
@@ -148,6 +152,11 @@ model Product {
   // Billing Configuration
   billingInterval     String?   @map("billing_interval")
 
+  // Subscription & Commitment Fields (Phase 3.5)
+  setupFee            Decimal?  @map("setup_fee") @db.Decimal(10, 2) // One-time charge on first invoice
+  trialPeriodDays     Int?      @map("trial_period_days") // Days before billing begins
+  minCommitmentMonths Int?      @map("min_commitment_months") // Minimum contract length in months
+
   // Product Status
   active              Boolean   @default(true)
   isAddon             Boolean   @default(false) @map("is_addon")
@@ -158,6 +167,8 @@ model Product {
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
   @@index([pricingModel])
+  @@index([chargeType])
+  @@index([category])
   @@index([active])
   @@map("products")
 }
