@@ -33,7 +33,7 @@ model Account {
   // Payment Configuration
   paymentTerms          String    @default("net_30") @map("payment_terms")
   paymentTermsDays      Int       @default(30) @map("payment_terms_days")
-  currency              String    @default("USD")
+  currency              String    @default("EUR")
   taxId                 String?   @map("tax_id")
 
   // Credit Management
@@ -135,7 +135,7 @@ model Product {
   // Pricing Model
   pricingModel        String    @map("pricing_model") // seat_based, flat_fee, volume_tiered, custom
   basePrice           Decimal?  @map("base_price") @db.Decimal(10, 2)
-  currency            String    @default("USD")
+  currency            String    @default("EUR")
 
   // Charge Type & Category (Phase 3.5)
   chargeType          String    @default("recurring") @map("charge_type") // recurring | one_time | usage_based
@@ -193,7 +193,7 @@ model Invoice {
   tax                   Decimal   @default(0) @db.Decimal(12, 2)
   discount              Decimal   @default(0) @db.Decimal(12, 2)
   total                 Decimal   @default(0) @db.Decimal(12, 2)
-  currency              String    @default("USD")
+  currency              String    @default("EUR")
 
   // Payment Status
   status                String    @default("draft")

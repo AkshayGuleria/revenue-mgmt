@@ -7,12 +7,15 @@ import {
   ScrollRestoration,
 } from "react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import { queryClient } from "~/lib/api/query-client";
 import { Toaster } from "~/components/ui/sonner";
 import { APP_NAME } from "~/lib/constants";
+import { useConfig } from "~/lib/api/hooks/use-config";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/svg+xml", href: "/favicon.png" },
@@ -49,10 +52,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AppInner() {
+  const { data: config } = useConfig();
+  const setConfig = useConfigStore((state) => state.setConfig);
+
+  useEffect(() => {
+    if (config) {
+      setConfig(config.defaultCurrency, config.supportedCurrencies);
+    }
+  }, [config, setConfig]);
+
+  return <Outlet />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <AppInner />
     </QueryClientProvider>
   );
 }

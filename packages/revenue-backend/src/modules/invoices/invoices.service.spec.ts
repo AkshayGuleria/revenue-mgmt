@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InvoicesService } from './invoices.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import {
   NotFoundException,
@@ -35,6 +36,10 @@ describe('InvoicesService', () => {
     },
   };
 
+  const mockConfigService = {
+    get: jest.fn().mockReturnValue('EUR'),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -42,6 +47,10 @@ describe('InvoicesService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -54,6 +63,7 @@ describe('InvoicesService', () => {
 
     // Reset all mocks before each test
     jest.clearAllMocks();
+    mockConfigService.get.mockReturnValue('EUR');
   });
 
   it('should be defined', () => {
@@ -265,6 +275,74 @@ describe('InvoicesService', () => {
       );
       await expect(service.create(createDto)).rejects.toThrow(
         'Invoice with this number already exists',
+      );
+    });
+
+    it('should apply EUR default when currency is omitted', async () => {
+      const dtoWithoutCurrency: CreateInvoiceDto = {
+        invoiceNumber: 'INV-NO-CURRENCY',
+        accountId: 'account-id-123',
+        issueDate: '2024-01-01',
+        dueDate: '2024-01-31',
+        subtotal: 1000,
+        tax: 0,
+        discount: 0,
+        total: 1000,
+      };
+      const mockAccount = { id: 'account-id-123' };
+      const mockInvoice = {
+        id: 'invoice-no-currency',
+        ...dtoWithoutCurrency,
+        currency: 'EUR',
+        issueDate: new Date('2024-01-01'),
+        dueDate: new Date('2024-01-31'),
+        items: [],
+      };
+
+      mockPrismaService.account.findUnique.mockResolvedValue(mockAccount);
+      mockPrismaService.invoice.create.mockResolvedValue(mockInvoice);
+
+      const result = await service.create(dtoWithoutCurrency);
+
+      expect(result.data.currency).toBe('EUR');
+      expect(mockPrismaService.invoice.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ currency: 'EUR' }),
+        }),
+      );
+    });
+
+    it('should use explicitly provided currency when given', async () => {
+      const dtoWithGbp: CreateInvoiceDto = {
+        invoiceNumber: 'INV-GBP-001',
+        accountId: 'account-id-123',
+        issueDate: '2024-01-01',
+        dueDate: '2024-01-31',
+        subtotal: 2000,
+        tax: 0,
+        discount: 0,
+        total: 2000,
+        currency: 'GBP',
+      };
+      const mockAccount = { id: 'account-id-123' };
+      const mockInvoice = {
+        id: 'invoice-gbp',
+        ...dtoWithGbp,
+        issueDate: new Date('2024-01-01'),
+        dueDate: new Date('2024-01-31'),
+        items: [],
+      };
+
+      mockPrismaService.account.findUnique.mockResolvedValue(mockAccount);
+      mockPrismaService.invoice.create.mockResolvedValue(mockInvoice);
+
+      const result = await service.create(dtoWithGbp);
+
+      expect(result.data.currency).toBe('GBP');
+      expect(mockPrismaService.invoice.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ currency: 'GBP' }),
+        }),
       );
     });
   });

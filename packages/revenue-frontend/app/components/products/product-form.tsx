@@ -30,6 +30,8 @@ import {
   ChargeType,
   ProductCategory,
 } from "~/types/models";
+import { CurrencySelect } from "~/components/ui/currency-select";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 const productFormSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -68,6 +70,8 @@ export function ProductForm({
   isLoading,
   mode,
 }: ProductFormProps) {
+  const { defaultCurrency } = useConfigStore();
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema) as Resolver<ProductFormValues>,
     defaultValues: {
@@ -76,7 +80,7 @@ export function ProductForm({
       sku: product?.sku || "",
       pricingModel: product?.pricingModel || PricingModel.SEAT_BASED,
       basePrice: product?.basePrice,
-      currency: product?.currency || "USD",
+      currency: product?.currency || defaultCurrency,
       chargeType: product?.chargeType || ChargeType.RECURRING,
       category: product?.category || ProductCategory.PLATFORM,
       setupFee: product?.setupFee,
@@ -167,7 +171,10 @@ export function ProductForm({
                 <FormItem>
                   <FormLabel>Currency</FormLabel>
                   <FormControl>
-                    <Input placeholder="USD" {...field} />
+                    <CurrencySelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

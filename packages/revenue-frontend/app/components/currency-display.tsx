@@ -3,6 +3,8 @@
  * Formats currency values consistently
  */
 
+import { useConfigStore } from "~/lib/stores/config-store";
+
 interface CurrencyDisplayProps {
   amount: number;
   currency?: string;
@@ -11,12 +13,15 @@ interface CurrencyDisplayProps {
 
 export function CurrencyDisplay({
   amount,
-  currency = "USD",
+  currency,
   className,
 }: CurrencyDisplayProps) {
+  const { defaultCurrency } = useConfigStore();
+  const resolvedCurrency = currency ?? defaultCurrency;
+
   const formatted = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency,
+    currency: resolvedCurrency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);

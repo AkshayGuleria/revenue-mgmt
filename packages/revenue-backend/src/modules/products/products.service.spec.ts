@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -21,6 +22,10 @@ describe('ProductsService', () => {
     },
   };
 
+  const mockConfigService = {
+    get: jest.fn().mockReturnValue('EUR'),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -28,6 +33,10 @@ describe('ProductsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -39,6 +48,7 @@ describe('ProductsService', () => {
     void prisma;
 
     jest.clearAllMocks();
+    mockConfigService.get.mockReturnValue('EUR');
   });
 
   describe('create', () => {
@@ -54,7 +64,7 @@ describe('ProductsService', () => {
     const mockCreatedProduct = {
       id: 'product-123',
       ...createProductDto,
-      currency: 'USD',
+      currency: 'EUR',
       active: true,
       isAddon: false,
       createdAt: new Date(),
@@ -78,7 +88,7 @@ describe('ProductsService', () => {
         },
       });
       expect(mockPrismaService.product.create).toHaveBeenCalledWith({
-        data: createProductDto,
+        data: { ...createProductDto, currency: 'EUR' },
       });
     });
 
@@ -216,6 +226,60 @@ describe('ProductsService', () => {
       await expect(
         service.create({ ...createProductDto, sku: 'ENT-PLAN-001' }),
       ).rejects.toThrow('Product with this SKU already exists');
+    });
+
+    it('should apply EUR default when currency is omitted', async () => {
+      const dtoWithoutCurrency: CreateProductDto = {
+        name: 'No Currency Plan',
+        pricingModel: PricingModel.FLAT_FEE,
+      };
+      const mockProduct = {
+        id: 'product-no-currency',
+        ...dtoWithoutCurrency,
+        currency: 'EUR',
+        active: true,
+        isAddon: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.product.create.mockResolvedValue(mockProduct);
+
+      const result = await service.create(dtoWithoutCurrency);
+
+      expect(result.data.currency).toBe('EUR');
+      expect(mockPrismaService.product.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ currency: 'EUR' }),
+        }),
+      );
+    });
+
+    it('should use explicitly provided currency when given', async () => {
+      const dtoWithGbp: CreateProductDto = {
+        name: 'GBP Plan',
+        pricingModel: PricingModel.FLAT_FEE,
+        currency: 'GBP',
+      };
+      const mockProduct = {
+        id: 'product-gbp',
+        ...dtoWithGbp,
+        active: true,
+        isAddon: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.product.create.mockResolvedValue(mockProduct);
+
+      const result = await service.create(dtoWithGbp);
+
+      expect(result.data.currency).toBe('GBP');
+      expect(mockPrismaService.product.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ currency: 'GBP' }),
+        }),
+      );
     });
   });
 

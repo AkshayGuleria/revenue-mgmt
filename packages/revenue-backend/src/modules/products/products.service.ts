@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto, QueryProductsDto } from './dto';
 import { Prisma } from '@prisma/client';
@@ -16,12 +17,18 @@ import { ApiResponse } from '../../common/interfaces';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
 
   async create(createProductDto: CreateProductDto): Promise<ApiResponse<any>> {
+    const currency =
+      createProductDto.currency ??
+      this.configService.get<string>('DEFAULT_CURRENCY', 'EUR');
     try {
       const product = await this.prisma.product.create({
-        data: createProductDto,
+        data: { ...createProductDto, currency },
       });
 
       return buildSingleResponse(product);

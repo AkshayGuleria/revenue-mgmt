@@ -10,6 +10,7 @@ import { ContractsModule } from './modules/contracts/contracts.module';
 import { ProductsModule } from './modules/products/products.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { AppConfigModule } from './modules/app-config/app-config.module';
 import { getQueueConfig } from './common/queues';
 
 @Module({
@@ -31,6 +32,7 @@ import { getQueueConfig } from './common/queues';
     ProductsModule,
     InvoicesModule,
     BillingModule,
+    AppConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

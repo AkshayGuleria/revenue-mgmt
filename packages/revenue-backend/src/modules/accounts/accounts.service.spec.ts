@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AccountsService } from './accounts.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -25,6 +26,10 @@ describe('AccountsService', () => {
     },
   };
 
+  const mockConfigService = {
+    get: jest.fn().mockReturnValue('EUR'),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -32,6 +37,10 @@ describe('AccountsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -41,6 +50,7 @@ describe('AccountsService', () => {
 
     // Clear all mocks before each test
     jest.clearAllMocks();
+    mockConfigService.get.mockReturnValue('EUR');
   });
 
   describe('create', () => {
@@ -49,7 +59,7 @@ describe('AccountsService', () => {
       primaryContactEmail: 'contact@acme.com',
       accountType: AccountType.ENTERPRISE,
       paymentTerms: PaymentTerms.NET_30,
-      currency: 'USD',
+      currency: 'EUR',
     };
 
     const mockCreatedAccount = {
@@ -139,6 +149,62 @@ describe('AccountsService', () => {
       );
       await expect(service.create(createAccountDto)).rejects.toThrow(
         'Account with this email already exists',
+      );
+    });
+
+    it('should apply EUR default when currency is omitted', async () => {
+      const dtoWithoutCurrency: CreateAccountDto = {
+        accountName: 'No Currency Corp',
+        primaryContactEmail: 'test@nocurrency.com',
+        accountType: AccountType.ENTERPRISE,
+      };
+      const mockAccount = {
+        id: 'account-no-currency',
+        ...dtoWithoutCurrency,
+        currency: 'EUR',
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockPrismaService.account.create.mockResolvedValue(mockAccount);
+
+      const result = await service.create(dtoWithoutCurrency);
+
+      expect(result.data.currency).toBe('EUR');
+      expect(mockPrismaService.account.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ currency: 'EUR' }),
+        }),
+      );
+    });
+
+    it('should use explicitly provided currency when given', async () => {
+      const dtoWithGbp: CreateAccountDto = {
+        accountName: 'GBP Corp',
+        primaryContactEmail: 'test@gbp.com',
+        accountType: AccountType.ENTERPRISE,
+        currency: 'GBP',
+      };
+      const mockAccount = {
+        id: 'account-gbp',
+        ...dtoWithGbp,
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      };
+
+      mockPrismaService.account.create.mockResolvedValue(mockAccount);
+
+      const result = await service.create(dtoWithGbp);
+
+      expect(result.data.currency).toBe('GBP');
+      expect(mockPrismaService.account.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ currency: 'GBP' }),
+        }),
       );
     });
   });

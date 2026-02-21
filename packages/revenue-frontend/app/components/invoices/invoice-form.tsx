@@ -36,6 +36,8 @@ import type {
   CreateInvoiceDto,
   UpdateInvoiceDto,
 } from "~/types/models";
+import { CurrencySelect } from "~/components/ui/currency-select";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -51,7 +53,7 @@ const invoiceFormSchema = z.object({
   issueDate: z.string().min(1, "Issue date is required"),
   dueDate: z.string().min(1, "Due date is required"),
   status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "void"]),
-  currency: z.string().default("USD"),
+  currency: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(invoiceItemSchema).min(1, "At least one line item is required"),
   // Invoice-level tax and discount
@@ -88,6 +90,8 @@ export function InvoiceForm({
   onCancel,
   isLoading,
 }: InvoiceFormProps) {
+  const { defaultCurrency } = useConfigStore();
+
   const [selectedAccountId, setSelectedAccountId] = useState<string>(
     invoice?.accountId || ""
   );
@@ -134,7 +138,7 @@ export function InvoiceForm({
             .toISOString()
             .split("T")[0],
           status: "draft",
-          currency: "USD",
+          currency: defaultCurrency,
           notes: "",
           items: [
             {
@@ -240,7 +244,7 @@ export function InvoiceForm({
       issueDate: data.issueDate,
       dueDate: data.dueDate,
       status: data.status,
-      currency: data.currency,
+      currency: data.currency || defaultCurrency,
       notes: data.notes,
       items,
       subtotal,
@@ -461,7 +465,10 @@ export function InvoiceForm({
                 <FormItem>
                   <FormLabel>Currency *</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <CurrencySelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

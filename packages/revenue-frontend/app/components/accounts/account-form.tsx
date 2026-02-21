@@ -28,6 +28,8 @@ import {
 import type { Account, CreateAccountDto, UpdateAccountDto } from "~/types/models";
 import { AccountType, AccountStatus, PaymentTerms } from "~/types/models";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
+import { CurrencySelect } from "~/components/ui/currency-select";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 // Validation schema
 const accountFormSchema = z.object({
@@ -74,6 +76,8 @@ export function AccountForm({
   isLoading,
   mode,
 }: AccountFormProps) {
+  const { defaultCurrency } = useConfigStore();
+
   // Fetch parent accounts for hierarchy selection
   const { data: accountsData } = useAccounts();
   const parentAccounts = Array.isArray(accountsData?.data)
@@ -98,7 +102,7 @@ export function AccountForm({
       billingPostalCode: account?.billingPostalCode || "",
       billingCountry: account?.billingCountry || "USA",
       paymentTerms: account?.paymentTerms || PaymentTerms.NET_30,
-      currency: account?.currency || "USD",
+      currency: account?.currency || defaultCurrency,
       taxId: account?.taxId || "",
       creditLimit: account?.creditLimit,
     },
@@ -308,7 +312,10 @@ export function AccountForm({
                 <FormItem>
                   <FormLabel>Currency</FormLabel>
                   <FormControl>
-                    <Input placeholder="USD" {...field} />
+                    <CurrencySelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
