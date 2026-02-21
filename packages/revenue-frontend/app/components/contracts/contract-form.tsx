@@ -3,7 +3,7 @@
  * Form for creating and editing contracts with validation
  */
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -71,7 +71,7 @@ export function ContractForm({
   const accounts = Array.isArray(accountsData?.data) ? accountsData.data : [];
 
   const form = useForm<ContractFormValues>({
-    resolver: zodResolver(contractFormSchema),
+    resolver: zodResolver(contractFormSchema) as Resolver<ContractFormValues>,
     defaultValues: {
       contractNumber: contract?.contractNumber || "",
       accountId: contract?.accountId || "",

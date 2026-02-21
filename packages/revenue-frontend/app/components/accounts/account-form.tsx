@@ -3,7 +3,7 @@
  * Form for creating and editing accounts with validation
  */
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Info, CreditCard, DollarSign, MapPin } from "lucide-react";
@@ -81,7 +81,7 @@ export function AccountForm({
     : [];
 
   const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountFormSchema),
+    resolver: zodResolver(accountFormSchema) as Resolver<AccountFormValues>,
     defaultValues: {
       accountName: account?.accountName || "",
       primaryContactEmail: account?.primaryContactEmail || "",

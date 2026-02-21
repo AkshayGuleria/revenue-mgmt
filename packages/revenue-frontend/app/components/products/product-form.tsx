@@ -2,7 +2,7 @@
  * Product Form Component
  */
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
@@ -69,7 +69,7 @@ export function ProductForm({
   mode,
 }: ProductFormProps) {
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema),
+    resolver: zodResolver(productFormSchema) as Resolver<ProductFormValues>,
     defaultValues: {
       name: product?.name || "",
       description: product?.description || "",

@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Card } from "~/components/ui/card";
@@ -110,7 +110,7 @@ export function InvoiceForm({
 
   // IMPORTANT: All hooks must be called before any conditional returns
   const form = useForm<InvoiceFormData>({
-    resolver: zodResolver(invoiceFormSchema),
+    resolver: zodResolver(invoiceFormSchema) as Resolver<InvoiceFormData>,
     defaultValues: invoice
       ? {
           accountId: invoice.accountId,
