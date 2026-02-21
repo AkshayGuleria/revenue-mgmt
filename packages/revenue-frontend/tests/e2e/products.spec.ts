@@ -191,7 +191,7 @@ test.describe('Products List Page', () => {
   test('should show a "New Product" link/button', async ({ page }) => {
     const newProductControl = page.getByRole('link', { name: /new product/i }).or(
       page.getByRole('button', { name: /new product/i })
-    );
+    ).first();
     await expect(newProductControl).toBeVisible();
   });
 
@@ -204,7 +204,7 @@ test.describe('Products List Page', () => {
   });
 
   test('table shows "Pricing Model" column header', async ({ page }) => {
-    await expect(page.getByText('Pricing Model')).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Pricing Model' })).toBeVisible();
   });
 
   test('table shows "Base Price" column header', async ({ page }) => {
@@ -236,9 +236,9 @@ test.describe('Products List Page', () => {
   });
 
   test('should display pricing model names in human-readable form', async ({ page }) => {
-    await expect(page.getByText('seat based', { exact: false })).toBeVisible();
-    await expect(page.getByText('flat fee', { exact: false })).toBeVisible();
-    await expect(page.getByText('volume tiered', { exact: false })).toBeVisible();
+    await expect(page.getByText('seat based', { exact: false }).first()).toBeVisible();
+    await expect(page.getByText('flat fee', { exact: false }).first()).toBeVisible();
+    await expect(page.getByText('volume tiered', { exact: false }).first()).toBeVisible();
   });
 
   test('should show active status badge for active products', async ({ page }) => {
@@ -344,6 +344,7 @@ test.describe('Products List Page', () => {
 
 test.describe('New Product Form', () => {
   test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1400 });
     await page.route('**/api/config', (route) =>
       route.fulfill({
         status: 200,
@@ -380,48 +381,53 @@ test.describe('New Product Form', () => {
   });
 
   test('selecting one_time chargeType hides billingInterval', async ({ page }) => {
-    const chargeTypeSelect = page.locator('[role="combobox"]').first();
+    const chargeTypeSelect = page.locator('[role="combobox"]').nth(1);
     await chargeTypeSelect.click();
-    await page.locator('[role="option"]:has-text("One-Time")').click();
+    await page.locator('[role="listbox"]').waitFor({ state: 'visible' });
+    await page.locator('[role="listbox"] [role="option"]:has-text("One-Time")').click();
 
     await expect(page.locator('label:has-text("Billing Interval")')).not.toBeVisible();
   });
 
   test('selecting flat_fee pricingModel hides seat configuration', async ({ page }) => {
-    const pricingModelSelect = page.locator('[role="combobox"]').nth(2);
+    const pricingModelSelect = page.locator('[role="combobox"]').nth(3);
     await pricingModelSelect.click();
-    await page.locator('[role="option"]:has-text("Flat Fee")').click();
+    await page.locator('[role="listbox"]').waitFor({ state: 'visible' });
+    await page.locator('[role="listbox"] [role="option"]:has-text("Flat Fee")').click();
 
     await expect(page.getByText('Seat Configuration')).not.toBeVisible();
   });
 
   test('billingInterval options include monthly, quarterly, semi-annual, annual', async ({ page }) => {
-    const billingIntervalSelect = page.locator('[role="combobox"]').nth(3);
+    const billingIntervalSelect = page.locator('[role="combobox"]').nth(4);
     await billingIntervalSelect.click();
+    await page.locator('[role="listbox"]').waitFor({ state: 'visible' });
 
-    await expect(page.locator('[role="option"]:has-text("Monthly")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Quarterly")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Semi-Annual")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Annual")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Monthly")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Quarterly")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Semi-Annual")')).toBeVisible();
+    await expect(page.locator('[role="listbox"]').getByRole('option', { name: 'Annual', exact: true })).toBeVisible();
   });
 
   test('usage_based chargeType shows Phase 6 info banner', async ({ page }) => {
-    const chargeTypeSelect = page.locator('[role="combobox"]').first();
+    const chargeTypeSelect = page.locator('[role="combobox"]').nth(1);
     await chargeTypeSelect.click();
-    await page.locator('[role="option"]:has-text("Usage-Based")').click();
+    await page.locator('[role="listbox"]').waitFor({ state: 'visible' });
+    await page.locator('[role="listbox"] [role="option"]:has-text("Usage-Based")').click();
 
     await expect(page.getByText('Usage-Based Billing — Phase 6')).toBeVisible();
   });
 
   test('category dropdown contains all 5 expected options', async ({ page }) => {
-    const categorySelect = page.locator('[role="combobox"]').nth(1);
+    const categorySelect = page.locator('[role="combobox"]').nth(2);
     await categorySelect.click();
+    await page.locator('[role="listbox"]').waitFor({ state: 'visible' });
 
-    await expect(page.locator('[role="option"]:has-text("Platform")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Seats")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Add-on")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Support")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Professional Services")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Platform")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Seats")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Add-on")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Support")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Professional Services")')).toBeVisible();
   });
 
   test('name field is required — shows error when empty', async ({ page }) => {
@@ -432,13 +438,14 @@ test.describe('New Product Form', () => {
   });
 
   test('pricing model is selectable with all options', async ({ page }) => {
-    const pricingModelSelect = page.locator('[role="combobox"]').nth(2);
+    const pricingModelSelect = page.locator('[role="combobox"]').nth(3);
     await pricingModelSelect.click();
+    await page.locator('[role="listbox"]').waitFor({ state: 'visible' });
 
-    await expect(page.locator('[role="option"]:has-text("Seat Based")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Flat Fee")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Volume Tiered")')).toBeVisible();
-    await expect(page.locator('[role="option"]:has-text("Custom")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Seat Based")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Flat Fee")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Volume Tiered")')).toBeVisible();
+    await expect(page.locator('[role="listbox"] [role="option"]:has-text("Custom")')).toBeVisible();
   });
 
   test('successful product creation navigates to products list', async ({ page }) => {
@@ -514,7 +521,7 @@ test.describe('New Product Form', () => {
   test('minSeats boundary: entering 0 shows validation (must be positive)', async ({ page }) => {
     // minSeats is validated as positive integer
     const minSeatsInput = page.locator('input[name="minSeats"]').or(
-      page.locator('label:has-text("Minimum Seats")').locator('.. input')
+      page.locator('label:has-text("Minimum Seats") + * input')
     );
     if (await minSeatsInput.count() > 0) {
       await minSeatsInput.first().fill('0');

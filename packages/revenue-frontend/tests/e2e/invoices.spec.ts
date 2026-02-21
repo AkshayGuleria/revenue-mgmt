@@ -255,7 +255,7 @@ test.describe('Invoices List Page', () => {
     await expect(
       page.getByRole('link', { name: /new invoice/i }).or(
         page.getByRole('button', { name: /new invoice/i })
-      )
+      ).first()
     ).toBeVisible();
   });
 
@@ -264,7 +264,7 @@ test.describe('Invoices List Page', () => {
   });
 
   test('table has "Account" column header', async ({ page }) => {
-    await expect(page.getByText('Account')).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Account' })).toBeVisible();
   });
 
   test('table has "Issue Date" column header', async ({ page }) => {
@@ -357,7 +357,7 @@ test.describe('Invoices List Page', () => {
 
     const newInvoiceControl = page.getByRole('link', { name: /new invoice/i }).or(
       page.getByRole('button', { name: /new invoice/i })
-    );
+    ).first();
     await newInvoiceControl.click({ force: true });
     await expect(page).toHaveURL(`${BASE_URL}/invoices/new`);
   });
@@ -440,7 +440,7 @@ test.describe('Invoice Detail Page', () => {
   });
 
   test('totals section shows Total', async ({ page }) => {
-    await expect(page.getByText('Total:')).toBeVisible();
+    await expect(page.getByText('Total:', { exact: true }).first()).toBeVisible();
   });
 
   test('notes section shown when invoice has notes', async ({ page }) => {
@@ -451,7 +451,7 @@ test.describe('Invoice Detail Page', () => {
   test('"Edit" button is present in the header actions', async ({ page }) => {
     await expect(page.getByRole('link', { name: /edit/i }).or(
       page.getByRole('button', { name: /edit/i })
-    )).toBeVisible();
+    ).first()).toBeVisible();
   });
 
   test('"Download PDF" button is present', async ({ page }) => {
@@ -576,7 +576,7 @@ test.describe('Invoice Status Badges', () => {
       await page.goto(`${BASE_URL}/invoices/${invoiceId}`);
       await page.waitForLoadState('networkidle');
 
-      await expect(page.getByText(status, { exact: false })).toBeVisible();
+      await expect(page.getByText(status, { exact: false }).first()).toBeVisible();
     });
   }
 });
@@ -664,7 +664,7 @@ test.describe('Invoice Creation Form', () => {
     await page.fill('input[name="items.0.unitPrice"]', '250');
     await page.waitForTimeout(500);
 
-    const amountText = await page.locator('text=Amount').locator('..').textContent();
+    const amountText = await page.locator('.text-sm:has-text("Amount:")').first().textContent();
     expect(amountText).toContain('1,000');
   });
 
@@ -686,7 +686,7 @@ test.describe('Invoice Creation Form', () => {
     // total = 1000 - 100 + 50 = 950
     await page.waitForTimeout(500);
 
-    const totalText = await page.locator('text=Total:').locator('..').textContent();
+    const totalText = await page.locator('.border-t:has-text("Total:")').first().textContent();
     expect(totalText).toContain('950');
   });
 
