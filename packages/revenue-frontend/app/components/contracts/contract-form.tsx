@@ -29,6 +29,7 @@ import {
 import type { Contract, CreateContractDto, UpdateContractDto } from "~/types/models";
 import { ContractStatus, BillingFrequency, PaymentTerms } from "~/types/models";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 // Validation schema
 const contractFormSchema = z.object({
@@ -66,6 +67,8 @@ export function ContractForm({
   isLoading,
   mode,
 }: ContractFormProps) {
+  const { defaultCurrency } = useConfigStore();
+
   // Fetch accounts for selection
   const { data: accountsData } = useAccounts({ "limit[eq]": 100 });
   const accounts = Array.isArray(accountsData?.data) ? accountsData.data : [];
@@ -188,7 +191,7 @@ export function ContractForm({
                   <FormControl>
                     <Input type="number" placeholder="100000" {...field} />
                   </FormControl>
-                  <FormDescription>Total contract value in USD</FormDescription>
+                  <FormDescription>Total contract value in {defaultCurrency}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
