@@ -67,6 +67,7 @@ export async function clientLoader() {
         return response.data as AppConfig;
       },
       staleTime: 30 * 60 * 1000,
+      retry: 0,
     });
     useConfigStore.getState().setConfig(
       config.defaultCurrency,

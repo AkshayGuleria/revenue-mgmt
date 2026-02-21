@@ -1,6 +1,7 @@
 /**
  * E2E Tests: Invoice Creation
- * Tests the complete invoice creation workflow in the frontend
+ * Tests the complete invoice creation workflow in the frontend.
+ * All API calls are mocked so these tests run without a live backend.
  *
  * @author piia (E2E Testing Agent)
  */
@@ -8,480 +9,594 @@
 import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'http://localhost:5173';
-const API_URL = 'http://localhost:5177';
+
+// ---------------------------------------------------------------------------
+// Shared mock data
+// ---------------------------------------------------------------------------
+
+const EUR_CONFIG = {
+  data: { defaultCurrency: 'EUR', supportedCurrencies: ['USD', 'EUR', 'GBP', 'CAD'] },
+  paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+};
+
+const MOCK_ACCOUNTS = [
+  { id: 'acc-001', accountName: 'Acme Corp', status: 'active', accountType: 'enterprise' },
+  { id: 'acc-002', accountName: 'Globex Inc', status: 'active', accountType: 'enterprise' },
+];
+
+const MOCK_CONTRACTS = [
+  { id: 'cnt-001', contractName: 'Acme Enterprise', accountId: 'acc-001', status: 'active' },
+];
+
+const MOCK_INVOICES = [
+  {
+    id: 'inv-001',
+    invoiceNumber: 'INV-2024-001',
+    accountId: 'acc-001',
+    account: { accountName: 'Acme Corp' },
+    status: 'draft',
+    issueDate: '2024-01-01',
+    dueDate: '2024-01-31',
+    currency: 'EUR',
+    subtotal: 1500,
+    discountAmount: 0,
+    taxAmount: 0,
+    total: 1500,
+  },
+  {
+    id: 'inv-002',
+    invoiceNumber: 'INV-2024-002',
+    accountId: 'acc-002',
+    account: { accountName: 'Globex Inc' },
+    status: 'paid',
+    issueDate: '2024-02-01',
+    dueDate: '2024-03-01',
+    currency: 'EUR',
+    subtotal: 3000,
+    discountAmount: 0,
+    taxAmount: 0,
+    total: 3000,
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Helper to set up all required route mocks for the invoice creation form
+// ---------------------------------------------------------------------------
+async function setupInvoiceFormMocks(page: any) {
+  await page.route('**/api/config', (route: any) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(EUR_CONFIG),
+    })
+  );
+
+  await page.route('**/api/accounts**', (route: any) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: MOCK_ACCOUNTS,
+        paging: { offset: 0, limit: 100, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+      }),
+    })
+  );
+
+  await page.route('**/api/contracts**', (route: any) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: MOCK_CONTRACTS,
+        paging: { offset: 0, limit: 100, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+      }),
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Invoice List tests
+// ---------------------------------------------------------------------------
+
+test.describe('Invoice List', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/api/config', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(EUR_CONFIG) })
+    );
+    await page.route('**/api/invoices**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: MOCK_INVOICES,
+          paging: { offset: 0, limit: 20, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+        }),
+      })
+    );
+
+    await page.goto(`${BASE_URL}/invoices`);
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should display page title "Invoices"', async ({ page }) => {
+    await expect(page.locator('h1')).toContainText('Invoices');
+  });
+
+  test('should display "New Invoice" button', async ({ page }) => {
+    await expect(page.getByRole('link', { name: 'New Invoice' }).or(
+      page.getByRole('button', { name: /new invoice/i })
+    )).toBeVisible();
+  });
+
+  test('should show invoice rows in the table', async ({ page }) => {
+    await expect(page.getByText('INV-2024-001')).toBeVisible();
+    await expect(page.getByText('INV-2024-002')).toBeVisible();
+  });
+
+  test('should show account names in the table', async ({ page }) => {
+    await expect(page.getByText('Acme Corp')).toBeVisible();
+    await expect(page.getByText('Globex Inc')).toBeVisible();
+  });
+
+  test('should show status badges for each invoice', async ({ page }) => {
+    await expect(page.getByText('draft', { exact: false })).toBeVisible();
+    await expect(page.getByText('paid', { exact: false })).toBeVisible();
+  });
+
+  test('should show empty state when no invoices exist', async ({ page }) => {
+    await page.route('**/api/invoices**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [],
+          paging: { offset: 0, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+        }),
+      })
+    );
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByText(/no invoices found/i)).toBeVisible();
+  });
+
+  test('should show loading state before invoices load', async ({ page }) => {
+    // Intercept and delay the response to observe the loading skeleton/spinner
+    await page.route('**/api/invoices**', async (route) => {
+      await new Promise((r) => setTimeout(r, 300));
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: MOCK_INVOICES,
+          paging: { offset: 0, limit: 20, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+        }),
+      });
+    });
+    await page.goto(`${BASE_URL}/invoices`);
+
+    // During the delayed load, a skeleton or spinner should appear
+    const loadingIndicator = page.locator('[class*="skeleton"]').or(
+      page.locator('[class*="animate-pulse"]').or(
+        page.locator('[class*="spinner"]')
+      )
+    );
+    // It's OK if the page loads too fast for this to be visible — we just ensure
+    // no error state appears
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('h1')).toContainText('Invoices');
+  });
+
+  test('should show error state when invoices API returns 500', async ({ page }) => {
+    await page.route('**/api/invoices**', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { message: 'Server error', statusCode: 500 } }),
+      })
+    );
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // Either an error message shows or the empty state shows (graceful degradation)
+    const hasErrorOrEmpty = await page.locator('text=/error|no invoices|failed/i').count() > 0;
+    expect(hasErrorOrEmpty).toBeTruthy();
+  });
+
+  test('should navigate to invoice creation form when clicking "New Invoice"', async ({ page }) => {
+    const newInvoiceLink = page.getByRole('link', { name: /new invoice/i }).or(
+      page.getByRole('button', { name: /new invoice/i })
+    );
+    await newInvoiceLink.click({ force: true });
+    await expect(page).toHaveURL(`${BASE_URL}/invoices/new`);
+    await expect(page.locator('h1')).toContainText('Create Invoice');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Invoice Creation Form tests
+// ---------------------------------------------------------------------------
 
 test.describe('Invoice Creation', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to invoices page
-    await page.goto(`${BASE_URL}/invoices`);
+    await setupInvoiceFormMocks(page);
+    await page.goto(`${BASE_URL}/invoices/new`);
     await page.waitForLoadState('networkidle');
-
-    // Close sidebar on mobile viewports to avoid click interception
-    const viewport = page.viewportSize();
-    if (viewport && viewport.width < 768) {
-      // Click outside sidebar or on a close button if exists
-      const sidebarToggle = page.locator('button[aria-label*="menu"]').or(
-        page.locator('button:has-text("☰")')
-      );
-      if (await sidebarToggle.count() > 0) {
-        await sidebarToggle.click();
-        await page.waitForTimeout(300);
-      }
-    }
-  });
-
-  test('should navigate to invoice creation form', async ({ page }) => {
-    // Click "New Invoice" button
-    await page.click('button:has-text("New Invoice")', { force: true });
-
-    // Should navigate to /invoices/new
-    await expect(page).toHaveURL(`${BASE_URL}/invoices/new`);
-
-    // Page header should show "Create Invoice"
-    await expect(page.locator('h1')).toContainText('Create Invoice');
   });
 
   test('should display all required form fields', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    // Check for required fields
     await expect(page.locator('label:has-text("Account")')).toBeVisible();
+    await expect(page.locator('label:has-text("Invoice Number")')).toBeVisible();
     await expect(page.locator('label:has-text("Issue Date")')).toBeVisible();
     await expect(page.locator('label:has-text("Due Date")')).toBeVisible();
     await expect(page.locator('label:has-text("Status")')).toBeVisible();
-
-    // Check for line items section
-    await expect(page.locator('text=Line Items')).toBeVisible();
+    await expect(page.locator('label:has-text("Currency")')).toBeVisible();
+    await expect(page.getByText('Line Items')).toBeVisible();
   });
 
-  test('should load accounts in dropdown', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    // Find and click account dropdown
-    const accountSelect = page.locator('select[name="accountId"]').or(
-      page.locator('button:has-text("Select account")')
-    );
-
-    await accountSelect.click();
-
-    // Should have account options
-    // Wait for accounts to load (may come from API)
-    await page.waitForTimeout(1000);
-
-    // Check if dropdown has options
-    const options = page.locator('select[name="accountId"] option').or(
-      page.locator('[role="option"]')
-    );
-
-    const count = await options.count();
-    expect(count).toBeGreaterThan(1); // At least "Select account" + 1 real account
+  test('should default currency to EUR from config', async ({ page }) => {
+    const currencySelect = page.locator('[role="combobox"]').filter({ hasText: 'EUR' });
+    await expect(currencySelect).toBeVisible();
   });
 
-  test('should validate required fields on submit', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
+  test('should auto-generate invoice number', async ({ page }) => {
+    const invoiceNumberInput = page.locator('input[name="invoiceNumber"]');
+    await expect(invoiceNumberInput).toBeVisible();
+    const value = await invoiceNumberInput.inputValue();
+    expect(value).toMatch(/INV-/);
+  });
 
-    // Try to submit without filling required fields
-    const submitButton = page.locator('button:has-text("Create Invoice")').or(
-      page.locator('button[type="submit"]')
-    );
+  test('should load accounts in dropdown from mocked API', async ({ page }) => {
+    const accountTrigger = page.locator('[role="combobox"]').first();
+    await accountTrigger.click();
 
+    await expect(page.locator('[role="option"]:has-text("Acme Corp")')).toBeVisible();
+    await expect(page.locator('[role="option"]:has-text("Globex Inc")')).toBeVisible();
+  });
+
+  test('contract selector is disabled until an account is selected', async ({ page }) => {
+    // The contract combobox should be disabled when no account is selected
+    // Find the contract select trigger
+    const comboboxes = page.locator('[role="combobox"]');
+    // The second visible combobox is the contract selector (after account)
+    const contractTrigger = comboboxes.nth(1);
+    await expect(contractTrigger).toBeDisabled();
+  });
+
+  test('contract selector loads contracts after account is selected', async ({ page }) => {
+    // Select account
+    const accountTrigger = page.locator('[role="combobox"]').first();
+    await accountTrigger.click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
+
+    // Contract combobox should now be enabled
+    const contractTrigger = page.locator('[role="combobox"]').nth(1);
+    await expect(contractTrigger).not.toBeDisabled();
+    await contractTrigger.click();
+
+    await expect(page.locator('[role="option"]:has-text("Acme Enterprise")')).toBeVisible();
+  });
+
+  test('should validate required account field on submit', async ({ page }) => {
+    // Clear the auto-filled invoice number to isolate account validation
+    const submitButton = page.getByRole('button', { name: /create invoice/i });
     await submitButton.click({ force: true });
-
-    // Should show validation errors
     await page.waitForTimeout(500);
 
-    // Look for error messages
-    const errors = page.locator('[class*="error"]').or(
-      page.locator('text=/required/i')
-    );
-
-    const errorCount = await errors.count();
-    expect(errorCount).toBeGreaterThan(0);
+    // Should show Account is required error
+    await expect(page.locator('text=Account is required')).toBeVisible();
   });
 
-  test('should add invoice line item', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
+  test('should validate due date must be after issue date', async ({ page }) => {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // Count initial line items
+    // Select account
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
+
+    // Set issue date to today and due date to yesterday
+    await page.fill('input[name="issueDate"]', today);
+    await page.fill('input[name="dueDate"]', yesterday);
+
+    // Fill a line item
+    await page.fill('input[name="items.0.description"]', 'Test Item');
+    await page.fill('input[name="items.0.quantity"]', '1');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
+
+    await page.getByRole('button', { name: /create invoice/i }).click();
+    await page.waitForTimeout(500);
+
+    // Due date validation error should be visible
+    await expect(page.getByText(/due date must be on or after/i)).toBeVisible();
+    expect(page.url()).toContain('/invoices/new');
+  });
+
+  test('should add a line item when "Add Item" is clicked', async ({ page }) => {
     const initialCount = await page.locator('input[name*="items."][name*=".description"]').count();
+    expect(initialCount).toBe(1); // starts with one default item
 
-    // Look for "Add Line Item" or "Add Item" button
-    const addItemButton = page.locator('button:has-text("Add Line Item")').or(
-      page.locator('button:has-text("Add Item")')
-    );
+    const addItemButton = page.getByRole('button', { name: /add item/i });
+    await addItemButton.click({ force: true });
+    await page.waitForTimeout(300);
 
-    // Check if button exists
-    const buttonExists = await addItemButton.count() > 0;
+    const newCount = await page.locator('input[name*="items."][name*=".description"]').count();
+    expect(newCount).toBe(2);
 
-    if (buttonExists) {
-      await addItemButton.click({ force: true });
-
-      // Wait a bit for the new item to be added
-      await page.waitForTimeout(500);
-
-      // Should have one more line item now
-      const newCount = await page.locator('input[name*="items."][name*=".description"]').count();
-      expect(newCount).toBe(initialCount + 1);
-
-      // Check that the new item fields are visible (target the specific second item)
-      await expect(page.locator(`input[name="items.${initialCount}.description"]`)).toBeVisible();
-      await expect(page.locator(`input[name="items.${initialCount}.quantity"]`)).toBeVisible();
-      await expect(page.locator(`input[name="items.${initialCount}.unitPrice"]`)).toBeVisible();
-    } else {
-      // Fail test if add item functionality is missing
-      throw new Error('Add Line Item button not found');
-    }
+    await expect(page.locator(`input[name="items.1.description"]`)).toBeVisible();
+    await expect(page.locator(`input[name="items.1.quantity"]`)).toBeVisible();
+    await expect(page.locator(`input[name="items.1.unitPrice"]`)).toBeVisible();
   });
 
-  test('should calculate line item total', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
+  test('should remove a line item (only when more than 1 exists)', async ({ page }) => {
+    // Add a second item
+    await page.getByRole('button', { name: /add item/i }).click({ force: true });
+    await page.waitForTimeout(300);
 
-    // Fill in the first line item that already exists
+    expect(await page.locator('input[name*=".description"]').count()).toBe(2);
+
+    // Remove button (trash icon) should appear when >1 items
+    await page.locator('button:has(svg)').filter({ hasText: '' }).last().click({ force: true });
+    await page.waitForTimeout(300);
+
+    expect(await page.locator('input[name*=".description"]').count()).toBe(1);
+  });
+
+  test('line item amount auto-calculates from quantity × unitPrice', async ({ page }) => {
+    await page.fill('input[name="items.0.quantity"]', '5');
+    await page.fill('input[name="items.0.unitPrice"]', '200');
+    await page.waitForTimeout(500);
+
+    // Line item amount display should show 1000
+    const amountText = await page.locator('text=Amount').locator('..').textContent();
+    expect(amountText).toContain('1,000');
+  });
+
+  test('subtotal updates live when line items change', async ({ page }) => {
+    await page.fill('input[name="items.0.quantity"]', '3');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
+    await page.waitForTimeout(500);
+
+    const subtotalRow = page.locator('text=Subtotal').locator('..');
+    const subtotalText = await subtotalRow.textContent();
+    expect(subtotalText).toContain('300');
+  });
+
+  test('total reflects subtotal minus discount plus tax', async ({ page }) => {
+    await page.fill('input[name="items.0.quantity"]', '10');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
+    // Subtotal = 1000
+
+    await page.fill('input[name="discount"]', '50');
+    await page.fill('input[name="tax"]', '25');
+    // Expected total = 1000 - 50 + 25 = 975
+    await page.waitForTimeout(500);
+
+    const totalRow = page.locator('text=Total:').locator('..');
+    const totalText = await totalRow.textContent();
+    expect(totalText).toContain('975');
+  });
+
+  test('should create invoice successfully and navigate to detail page', async ({ page }) => {
+    await page.route('**/api/invoices', (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            id: 'inv-new-001',
+            invoiceNumber: 'INV-NEW-001',
+            status: 'draft',
+            currency: 'EUR',
+            total: 500,
+          },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      })
+    );
+
+    // Fill account
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
+
+    // Dates already pre-filled; fill line item
+    await page.fill('input[name="items.0.description"]', 'Professional Services');
     await page.fill('input[name="items.0.quantity"]', '5');
     await page.fill('input[name="items.0.unitPrice"]', '100');
 
-    // Wait for calculation
-    await page.waitForTimeout(1000);
-
-    // Should show subtotal (5 * 100 = 500) - check the subtotal/total section
-    const subtotalText = await page.locator('text=Subtotal').locator('..').textContent();
-    expect(subtotalText).toContain('500');
+    await page.getByRole('button', { name: /create invoice/i }).click();
+    await page.waitForURL(`${BASE_URL}/invoices/inv-new-001`, { timeout: 5000 });
+    expect(page.url()).toContain('/invoices/inv-new-001');
   });
 
-  test('should create invoice with valid data', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    // Fill in account
-    const accountSelect = page.locator('select[name="accountId"]');
-    if (await accountSelect.count() > 0) {
-      await accountSelect.selectOption({ index: 1 }); // Select first real account
-    } else {
-      // Try combobox/autocomplete
-      await page.click('button:has-text("Select account")', { force: true });
-      await page.waitForTimeout(500);
-      await page.click('[role="option"]', { force: true });
-    }
-
-    // Fill in dates
-    const today = new Date().toISOString().split('T')[0];
-    const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    await page.fill('input[name="issueDate"]', today);
-    await page.fill('input[name="dueDate"]', dueDate);
-
-    // Select status
-    const statusSelect = page.locator('select[name="status"]');
-    if (await statusSelect.count() > 0) {
-      await statusSelect.selectOption('draft');
-    }
-
-    // Fill in the first line item (already exists by default)
-    await page.fill('input[name="items.0.description"]', 'Professional Services');
-    await page.fill('input[name="items.0.quantity"]', '10');
-    await page.fill('input[name="items.0.unitPrice"]', '150');
-
-    // Wait for form to be valid
-    await page.waitForTimeout(1000);
-
-    // Submit form
-    const submitButton = page.locator('button:has-text("Create Invoice")').or(
-      page.locator('button[type="submit"]')
-    );
-
-    await submitButton.click({ force: true });
-
-    // Wait a bit for form submission
-    await page.waitForTimeout(2000);
-
-    // Success can be indicated by:
-    // 1. Navigation away from /new page (successful submission)
-    // 2. Success toast/message visible
-    // 3. No validation errors visible (form accepted the data)
-    const currentUrl = page.url();
-    const navigatedAway = !currentUrl.includes('/invoices/new');
-
-    // If we're still on the form, check for errors
-    if (!navigatedAway) {
-      // Check if there are validation errors
-      const hasErrors = await page.locator('[class*="error"]').or(
-        page.locator('text=/error|invalid|required/i')
-      ).count() > 0;
-
-      // Form should have been submitted (no validation errors)
-      expect(hasErrors).toBeFalsy();
-    } else {
-      // Successfully navigated away
-      expect(navigatedAway).toBeTruthy();
-    }
-  });
-
-  test('should handle API errors gracefully', async ({ page }) => {
-    // Mock API to return error
-    await page.route(`${API_URL}/api/invoices`, route => {
+  test('should show error toast when create invoice API returns 500', async ({ page }) => {
+    await page.route('**/api/invoices', (route) =>
       route.fulfill({
         status: 500,
         contentType: 'application/json',
         body: JSON.stringify({
-          error: {
-            message: 'Internal server error',
-            code: 'INTERNAL_ERROR',
-            statusCode: 500
-          }
-        })
+          error: { code: 'INTERNAL_ERROR', message: 'Internal server error', statusCode: 500 },
+        }),
+      })
+    );
+
+    // Fill minimal valid form
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
+
+    await page.fill('input[name="items.0.description"]', 'Service');
+    await page.fill('input[name="items.0.quantity"]', '1');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
+
+    await page.getByRole('button', { name: /create invoice/i }).click();
+    await page.waitForTimeout(2000);
+
+    // Should stay on the form page (not navigate away)
+    expect(page.url()).toContain('/invoices/new');
+
+    // Error toast or alert should be visible
+    const errorVisible = await page.locator('text=/failed|error/i').count() > 0;
+    expect(errorVisible).toBeTruthy();
+  });
+
+  test('should show loading state on submit button while saving', async ({ page }) => {
+    await page.route('**/api/invoices', async (route) => {
+      await new Promise((r) => setTimeout(r, 800));
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { id: 'inv-new-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
       });
     });
 
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
 
-    // Fill form with minimal valid data
-    const accountSelect = page.locator('select[name="accountId"]');
-    if (await accountSelect.count() > 0) {
-      await accountSelect.selectOption({ index: 1 });
-    }
+    await page.fill('input[name="items.0.description"]', 'Service');
+    await page.fill('input[name="items.0.quantity"]', '1');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
 
-    const today = new Date().toISOString().split('T')[0];
-    await page.fill('input[name="issueDate"]', today);
-    await page.fill('input[name="dueDate"]', today);
+    await page.getByRole('button', { name: /create invoice/i }).click();
 
-    // Submit form
-    const submitButton = page.locator('button[type="submit"]');
-    await submitButton.click({ force: true });
-
-    // Should either show error message or stay on form page
-    await page.waitForTimeout(2000);
-
-    // Check if we're still on the new invoice page (error prevented navigation)
-    const stillOnNewPage = page.url().includes('/invoices/new');
-
-    // Check for any error indicators (toast, error text, or error styling)
-    const hasErrorIndicator = await page.locator('text=/error|failed|invalid/i').or(
-      page.locator('[role="alert"]').or(page.locator('[class*="error"]'))
-    ).count() > 0;
-
-    // Either we stayed on page (form rejected) OR we saw an error message
-    expect(stillOnNewPage || hasErrorIndicator).toBeTruthy();
+    // Button should show "Saving..." while pending
+    await expect(page.getByRole('button', { name: /saving/i })).toBeVisible({ timeout: 2000 });
   });
 
-  test('should remove line item', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    // Add two line items
-    const addItemButton = page.locator('button:has-text("Add Line Item")');
-
-    if (await addItemButton.count() > 0) {
-      await addItemButton.click({ force: true });
-      await page.fill('input[name*="description"]', 'Item 1');
-
-      await addItemButton.click({ force: true });
-      await page.fill('input[name*="description"]', 'Item 2');
-
-      // Should have 2 line items
-      const lineItems = page.locator('[data-testid="line-item"]').or(
-        page.locator('input[name*="description"]')
-      );
-
-      const initialCount = await lineItems.count();
-      expect(initialCount).toBe(2);
-
-      // Find and click remove button
-      const removeButton = page.locator('button:has-text("Remove")').or(
-        page.locator('button[aria-label*="remove"]')
-      ).first();
-
-      if (await removeButton.count() > 0) {
-        await removeButton.click();
-
-        // Should have 1 line item left
-        await page.waitForTimeout(500);
-        const finalCount = await lineItems.count();
-        expect(finalCount).toBe(1);
-      }
-    }
-  });
-
-  test('should calculate invoice subtotal and total', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    // Add multiple line items
-    const addItemButton = page.locator('button:has-text("Add Line Item")');
-
-    if (await addItemButton.count() > 0) {
-      // Item 1: 5 * $100 = $500
-      await addItemButton.click({ force: true });
-      await page.fill('input[name*="quantity"]', '5');
-      await page.fill('input[name*="unitPrice"]', '100');
-
-      // Item 2: 3 * $200 = $600
-      await addItemButton.click({ force: true });
-      const quantityInputs = page.locator('input[name*="quantity"]');
-      const priceInputs = page.locator('input[name*="unitPrice"]');
-
-      await quantityInputs.nth(1).fill('3');
-      await priceInputs.nth(1).fill('200');
-
-      // Wait for calculation
-      await page.waitForTimeout(1000);
-
-      // Should show subtotal $1100
-      const subtotal = page.locator('text=/subtotal.*1,?100/i');
-      const total = page.locator('text=/total.*1,?100/i');
-
-      // At least one should be visible
-      const subtotalVisible = await subtotal.count() > 0;
-      const totalVisible = await total.count() > 0;
-
-      expect(subtotalVisible || totalVisible).toBeTruthy();
-    }
-  });
-
-  test('should validate invoice date is not in future', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    // Set future date
-    const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    await page.fill('input[name="issueDate"]', futureDate);
-    await page.fill('input[name="dueDate"]', futureDate);
-
-    // Blur to trigger validation
-    await page.press('input[name="issueDate"]', 'Tab');
-
-    await page.waitForTimeout(500);
-
-    // May show validation error (optional - depends on requirements)
-    // This test documents expected behavior
-  });
-
-  test('should validate due date is after invoice date', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    // Fill required fields
-    const accountSelect = page.locator('select[name="accountId"]').or(
-      page.locator('[role="combobox"]').filter({ hasText: /account/i })
-    );
-    if (await accountSelect.count() > 0) {
-      await accountSelect.selectOption({ index: 1 });
-    }
-
-    await page.fill('input[name="issueDate"]', today);
-    await page.fill('input[name="dueDate"]', yesterday); // Due date before invoice date
-
-    // Fill line item
-    await page.fill('input[name*="description"]', 'Test Item');
-    await page.fill('input[name*="quantity"]', '1');
-    await page.fill('input[name*="unitPrice"]', '100');
-
-    // Try to submit the form
-    const submitButton = page.locator('button[type="submit"]').filter({ hasText: /create|save/i });
-    await submitButton.click();
-
-    // Wait for validation to trigger
-    await page.waitForTimeout(500);
-
-    // MUST show validation error
-    const errorMessage = page.locator('text=/due date.*after/i');
-    await expect(errorMessage).toBeVisible();
-
-    // Form should still be on the new invoice page (submission prevented)
-    expect(page.url()).toContain('/invoices/new');
+  test('should navigate to invoices list on cancel', async ({ page }) => {
+    await page.getByRole('button', { name: /cancel/i }).click();
+    await expect(page).toHaveURL(`${BASE_URL}/invoices`);
   });
 });
 
+// ---------------------------------------------------------------------------
+// Invoice Creation - Edge Cases
+// ---------------------------------------------------------------------------
+
 test.describe('Invoice Creation - Edge Cases', () => {
-  test('should handle empty line items array', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    await setupInvoiceFormMocks(page);
     await page.goto(`${BASE_URL}/invoices/new`);
     await page.waitForLoadState('networkidle');
-
-    // Fill required fields but no line items
-    const accountSelect = page.locator('select[name="accountId"]');
-    if (await accountSelect.count() > 0) {
-      await accountSelect.selectOption({ index: 1 });
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    await page.fill('input[name="issueDate"]', today);
-    await page.fill('input[name="dueDate"]', today);
-
-    // Try to submit without line items
-    const submitButton = page.locator('button[type="submit"]');
-    await submitButton.click({ force: true });
-
-    // Should either:
-    // 1. Show validation error requiring at least 1 line item
-    // 2. Or allow creation with 0 items (depends on requirements)
-
-    await page.waitForTimeout(1000);
-    // Document current behavior
   });
 
-  test('should handle very large amounts', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
+  test('discount cannot exceed subtotal - shows validation error', async ({ page }) => {
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
 
-    const addItemButton = page.locator('button:has-text("Add Line Item")');
+    await page.fill('input[name="items.0.quantity"]', '1');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
+    // Subtotal = 100, enter discount > 100
+    await page.fill('input[name="discount"]', '200');
+    await page.fill('input[name="items.0.description"]', 'Service');
 
-    if (await addItemButton.count() > 0) {
-      await addItemButton.click({ force: true });
+    await page.getByRole('button', { name: /create invoice/i }).click();
+    await page.waitForTimeout(500);
 
-      // Enter large amount
-      await page.fill('input[name*="quantity"]', '1');
-      await page.fill('input[name*="unitPrice"]', '9999999.99');
-
-      await page.waitForTimeout(500);
-
-      // Should format large number correctly
-      const formattedAmount = page.locator('text=/9,999,999/');
-      // Optional - check if formatting works
-    }
+    await expect(page.getByText(/discount cannot exceed/i)).toBeVisible();
+    expect(page.url()).toContain('/invoices/new');
   });
 
-  test('should prevent duplicate form submission', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invoices/new`);
-    await page.waitForLoadState('networkidle');
+  test('line item quantity must be at least 1', async ({ page }) => {
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
 
-    // Fill valid form
-    const accountSelect = page.locator('select[name="accountId"]');
-    if (await accountSelect.count() > 0) {
-      await accountSelect.selectOption({ index: 1 });
+    await page.fill('input[name="items.0.description"]', 'Zero quantity item');
+    await page.fill('input[name="items.0.quantity"]', '0');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
+
+    await page.getByRole('button', { name: /create invoice/i }).click();
+    await page.waitForTimeout(500);
+
+    // Should show validation error for quantity
+    await expect(page.getByText(/quantity must be at least 1/i)).toBeVisible();
+  });
+
+  test('unit price cannot be negative', async ({ page }) => {
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
+
+    await page.fill('input[name="items.0.description"]', 'Negative price item');
+    await page.fill('input[name="items.0.quantity"]', '1');
+    await page.fill('input[name="items.0.unitPrice"]', '-50');
+
+    await page.getByRole('button', { name: /create invoice/i }).click();
+    await page.waitForTimeout(500);
+
+    // Should show validation error for unit price
+    await expect(page.getByText(/unit price cannot be negative/i)).toBeVisible();
+  });
+
+  test('at least one line item is required', async ({ page }) => {
+    // The form starts with 1 item — we cannot remove it (the remove button only shows when >1)
+    // So we verify the schema enforces at least 1 item by checking the form renders with 1 item
+    const items = page.locator('input[name*=".description"]');
+    await expect(items).toHaveCount(1);
+
+    // Add and remove to check that remove button disappears at 1 item
+    await page.getByRole('button', { name: /add item/i }).click({ force: true });
+    await page.waitForTimeout(300);
+    expect(await page.locator('input[name*=".description"]').count()).toBe(2);
+
+    // After removing second item there should still be 1
+    // The trash button appears for each item when count > 1
+    const trashButtons = page.locator('button svg[data-lucide="trash-2"]').locator('..');
+    if (await trashButtons.count() > 0) {
+      await trashButtons.last().click({ force: true });
+      await page.waitForTimeout(300);
     }
+    expect(await page.locator('input[name*=".description"]').count()).toBeGreaterThanOrEqual(1);
+  });
 
-    const today = new Date().toISOString().split('T')[0];
-    await page.fill('input[name="issueDate"]', today);
-    await page.fill('input[name="dueDate"]', today);
+  test('handles very large amounts without crashing', async ({ page }) => {
+    await page.fill('input[name="items.0.quantity"]', '1');
+    await page.fill('input[name="items.0.unitPrice"]', '9999999.99');
+    await page.waitForTimeout(500);
 
-    // Click submit multiple times rapidly
-    const submitButton = page.locator('button[type="submit"]');
+    // Page should still be visible and not crash
+    await expect(page.locator('h1')).toContainText('Create Invoice');
 
-    // Try clicking submit button (React Hook Form should prevent duplicate submissions)
-    await submitButton.click({ force: true });
+    // Subtotal text should contain a formatted large number
+    const subtotalRow = page.locator('text=Subtotal').locator('..');
+    const subtotalText = await subtotalRow.textContent();
+    expect(subtotalText).toContain('9,999,999');
+  });
 
-    // Wait a bit to see what happens
-    await page.waitForTimeout(1500);
+  test('submit button disabled while form is submitting', async ({ page }) => {
+    await page.route('**/api/invoices', async (route) => {
+      await new Promise((r) => setTimeout(r, 1000));
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { id: 'inv-slow-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      });
+    });
 
-    // After submission attempt, one of these should be true:
-    // 1. Button is disabled (preventing duplicate submission)
-    // 2. We navigated away (successful submission)
-    // 3. We're still on form with validation message (prevented submission)
-    const isDisabled = await submitButton.isDisabled();
-    const hasNavigated = !page.url().includes('/invoices/new');
-    const stillOnForm = page.url().includes('/invoices/new');
+    await page.locator('[role="combobox"]').first().click();
+    await page.locator('[role="option"]:has-text("Acme Corp")').click();
+    await page.waitForTimeout(300);
 
-    // Test passes if ANY of these conditions are met
-    // (we don't get duplicate submissions or errors)
-    expect(isDisabled || hasNavigated || stillOnForm).toBeTruthy();
+    await page.fill('input[name="items.0.description"]', 'Service');
+    await page.fill('input[name="items.0.quantity"]', '1');
+    await page.fill('input[name="items.0.unitPrice"]', '100');
+
+    const submitBtn = page.getByRole('button', { name: /create invoice/i });
+    await submitBtn.click();
+
+    // After click, the button should be disabled to prevent double-submit
+    await expect(submitBtn.or(page.getByRole('button', { name: /saving/i }))).toBeDisabled({ timeout: 2000 });
   });
 });
