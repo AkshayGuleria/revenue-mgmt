@@ -23,9 +23,14 @@ import {
   useExpiringContracts
 } from "~/lib/api/hooks/use-dashboard";
 import { formatDistanceToNow } from "date-fns";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 export default function Dashboard() {
+  const { defaultCurrency } = useConfigStore();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: defaultCurrency, maximumFractionDigits: 0 }).format(value);
   const { data: activities, isLoading: activitiesLoading } = useRecentActivity();
   const { data: expiringContracts, isLoading: contractsLoading } = useExpiringContracts();
 
@@ -48,13 +53,13 @@ export default function Dashboard() {
     {
       title: "Pending Invoices",
       value: stats?.pendingInvoices.count.toString() || "0",
-      description: `$${stats?.pendingInvoices.totalValue.toLocaleString() || "0"} total value`,
+      description: `${formatCurrency(stats?.pendingInvoices.totalValue || 0)} total value`,
       gradient: "from-amber-500 to-amber-600",
       icon: Receipt,
     },
     {
       title: "Monthly Revenue",
-      value: `$${stats?.monthlyRevenue.toLocaleString() || "0"}`,
+      value: formatCurrency(stats?.monthlyRevenue || 0),
       description: "Revenue this month",
       gradient: "from-purple-500 to-purple-600",
       icon: DollarSign,

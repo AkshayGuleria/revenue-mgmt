@@ -37,6 +37,7 @@ import type {
   UpdateInvoiceDto,
 } from "~/types/models";
 import { CurrencySelect } from "~/components/ui/currency-select";
+import { CurrencyDisplay } from "~/components/currency-display";
 import { useConfigStore } from "~/lib/stores/config-store";
 
 const invoiceItemSchema = z.object({
@@ -156,6 +157,8 @@ export function InvoiceForm({
     control: form.control,
     name: "items",
   });
+
+  const selectedCurrency = form.watch("currency") || defaultCurrency;
 
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -615,7 +618,7 @@ export function InvoiceForm({
                     <div className="text-sm">
                       <span className="text-gray-600">Amount: </span>
                       <span className="font-semibold">
-                        ${calculateLineTotal(index).toFixed(2)}
+                        <CurrencyDisplay amount={calculateLineTotal(index)} currency={selectedCurrency} />
                       </span>
                     </div>
                   </div>
@@ -630,14 +633,14 @@ export function InvoiceForm({
           <div className="max-w-md ml-auto space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
+              <CurrencyDisplay amount={totals.subtotal} currency={selectedCurrency} className="font-medium" />
             </div>
 
             {totals.discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Discount:</span>
                 <span className="text-green-600 font-medium">
-                  -${totals.discount.toFixed(2)}
+                  -<CurrencyDisplay amount={totals.discount} currency={selectedCurrency} />
                 </span>
               </div>
             )}
@@ -645,13 +648,13 @@ export function InvoiceForm({
             {totals.tax > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax:</span>
-                <span className="font-medium">${totals.tax.toFixed(2)}</span>
+                <CurrencyDisplay amount={totals.tax} currency={selectedCurrency} className="font-medium" />
               </div>
             )}
 
             <div className="border-t pt-3 flex justify-between text-lg font-semibold">
               <span>Total:</span>
-              <span>${totals.total.toFixed(2)}</span>
+              <CurrencyDisplay amount={totals.total} currency={selectedCurrency} />
             </div>
           </div>
         </Card>

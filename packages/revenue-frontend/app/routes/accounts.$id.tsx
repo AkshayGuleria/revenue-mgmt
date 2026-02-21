@@ -15,6 +15,7 @@ import { StatusBadge } from "~/components/status-badge";
 import { useAccount } from "~/lib/api/hooks/use-accounts";
 import { useContracts } from "~/lib/api/hooks/use-contracts";
 import { Skeleton } from "~/components/ui/skeleton";
+import { CurrencyDisplay } from "~/components/currency-display";
 
 export default function AccountDetailsRoute() {
   const params = useParams();
@@ -179,7 +180,7 @@ export default function AccountDetailsRoute() {
                   </p>
                   <p className="text-base font-medium text-gray-900">
                     {account.creditLimit
-                      ? `$${account.creditLimit.toLocaleString()}`
+                      ? <CurrencyDisplay amount={account.creditLimit} currency={account.currency} />
                       : "Not set"}
                   </p>
                 </div>
@@ -409,7 +410,7 @@ export default function AccountDetailsRoute() {
                           <div className="flex items-center gap-4 text-sm text-gray-600">
                             <span className="flex items-center gap-1">
                               <DollarSign className="h-4 w-4" />
-                              ${contract.contractValue?.toLocaleString()}
+                              <CurrencyDisplay amount={contract.contractValue} currency={account.currency} />
                             </span>
                             <span className="flex items-center gap-1">
                               <User className="h-4 w-4" />
