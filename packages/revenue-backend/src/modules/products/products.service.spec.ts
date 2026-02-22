@@ -228,6 +228,15 @@ describe('ProductsService', () => {
       ).rejects.toThrow('Product with this SKU already exists');
     });
 
+    it('should rethrow non-P2002 prisma errors on create', async () => {
+      const genericError = new Error('Generic DB error');
+      mockPrismaService.product.create.mockRejectedValue(genericError);
+
+      await expect(
+        service.create({ name: 'Test Product', pricingModel: PricingModel.FLAT_FEE }),
+      ).rejects.toThrow('Generic DB error');
+    });
+
     it('should apply EUR default when currency is omitted', async () => {
       const dtoWithoutCurrency: CreateProductDto = {
         name: 'No Currency Plan',
@@ -577,6 +586,15 @@ describe('ProductsService', () => {
       await expect(
         service.update('product-1', { sku: 'EXISTING-SKU' }),
       ).rejects.toThrow(ConflictException);
+    });
+
+    it('should rethrow non-P2002 prisma errors on update', async () => {
+      const genericError = new Error('Generic DB error on update');
+      mockPrismaService.product.update.mockRejectedValue(genericError);
+
+      await expect(
+        service.update('product-1', { name: 'New Name' }),
+      ).rejects.toThrow('Generic DB error on update');
     });
   });
 

@@ -155,6 +155,16 @@ describe('ContractsService', () => {
         'Contract with this number already exists',
       );
     });
+
+    it('should rethrow non-P2002 prisma errors on create', async () => {
+      const genericError = new Error('Generic DB error');
+      mockPrismaService.account.findUnique.mockResolvedValue(mockAccount);
+      mockPrismaService.contract.create.mockRejectedValue(genericError);
+
+      await expect(service.create(createContractDto)).rejects.toThrow(
+        'Generic DB error',
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -426,6 +436,42 @@ describe('ContractsService', () => {
       await expect(
         service.update('contract-1', { contractNumber: 'CNT-2024-0002' }),
       ).rejects.toThrow(ConflictException);
+    });
+
+    it('should rethrow non-P2002 prisma errors on update', async () => {
+      const genericError = new Error('Generic DB error on update');
+      mockPrismaService.contract.update.mockRejectedValue(genericError);
+
+      await expect(
+        service.update('contract-1', { contractNumber: 'CNT-NEW' }),
+      ).rejects.toThrow('Generic DB error on update');
+    });
+
+    it('should update contract with startDate and endDate', async () => {
+      const updateWithDates = {
+        startDate: '2025-01-01',
+        endDate: '2025-12-31',
+      };
+
+      const updatedContract = {
+        ...mockContract,
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2025-12-31'),
+      };
+
+      mockPrismaService.contract.update.mockResolvedValue(updatedContract);
+
+      const result = await service.update('contract-1', updateWithDates);
+
+      expect(result.data).toEqual(updatedContract);
+      expect(mockPrismaService.contract.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            startDate: new Date('2025-01-01'),
+            endDate: new Date('2025-12-31'),
+          }),
+        }),
+      );
     });
   });
 

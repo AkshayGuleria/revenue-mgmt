@@ -380,6 +380,81 @@ describe('BillingEngineService', () => {
       expect(capturedLineItems[0].description).toBe('Monthly Subscription');
     });
 
+    it('should handle quarterly billing frequency (value-based, not seat-based)', async () => {
+      const quarterlyContract = {
+        ...mockContract,
+        billingFrequency: 'quarterly',
+        seatCount: null,
+        seatPrice: null,
+      };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(quarterlyContract);
+      mockPrismaService.invoice.count.mockResolvedValue(0);
+
+      let capturedLineItems: any[];
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return callback({
+          invoice: {
+            create: jest.fn().mockResolvedValue(mockInvoice),
+          },
+          invoiceItem: {
+            createMany: jest.fn().mockImplementation((data) => {
+              capturedLineItems = data.data;
+              return Promise.resolve();
+            }),
+          },
+        });
+      });
+
+      await service.generateInvoiceFromContract({
+        contractId: 'contract-123',
+      });
+
+      // Quarterly = contractValue / 4
+      const expectedAmount = new Decimal(120000).div(4);
+      expect(capturedLineItems[0].amount.toString()).toBe(
+        expectedAmount.toString(),
+      );
+      expect(capturedLineItems[0].description).toBe('Quarterly Subscription');
+    });
+
+    it('should use default (monthly) billing period for unknown frequency', async () => {
+      const unknownFreqContract = {
+        ...mockContract,
+        billingFrequency: 'biweekly', // unknown frequency
+        seatCount: null,
+        seatPrice: null,
+      };
+
+      mockPrismaService.contract.findUnique.mockResolvedValue(unknownFreqContract);
+      mockPrismaService.invoice.count.mockResolvedValue(0);
+
+      let capturedLineItems: any[];
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return callback({
+          invoice: {
+            create: jest.fn().mockResolvedValue(mockInvoice),
+          },
+          invoiceItem: {
+            createMany: jest.fn().mockImplementation((data) => {
+              capturedLineItems = data.data;
+              return Promise.resolve();
+            }),
+          },
+        });
+      });
+
+      await service.generateInvoiceFromContract({
+        contractId: 'contract-123',
+      });
+
+      // Unknown frequency defaults to monthly = contractValue / 12
+      const expectedAmount = new Decimal(120000).div(12);
+      expect(capturedLineItems[0].amount.toString()).toBe(
+        expectedAmount.toString(),
+      );
+    });
+
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -493,6 +568,73 @@ describe('BillingEngineService', () => {
       };
       const fee = service.getSetupFee(product, contractStart, new Date('2026-02-01'));
       expect(fee.toString()).toBe('0');
+    });
+  });
+
+  describe('generateInvoiceFromContract — setup fee path', () => {
+    const mockContractWithSetupFee = {
+      id: 'contract-123',
+      contractNumber: 'CNT-2026-0001',
+      accountId: 'account-123',
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-12-31'),
+      contractValue: new Decimal(120000),
+      billingFrequency: 'monthly',
+      seatCount: null,
+      seatPrice: null,
+      status: 'active',
+      account: {
+        id: 'account-123',
+        accountName: 'Acme Corp',
+        currency: 'USD',
+        paymentTermsDays: 30,
+      },
+    };
+
+    it('should include setup fee line item when getSetupFee returns positive value', async () => {
+      mockPrismaService.contract.findUnique.mockResolvedValue(mockContractWithSetupFee);
+      mockPrismaService.invoice.count.mockResolvedValue(0);
+
+      // Spy on getSetupFee to return a non-zero setup fee
+      jest.spyOn(service, 'getSetupFee').mockReturnValue(new Decimal(500));
+
+      let capturedLineItems: any[];
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return callback({
+          invoice: {
+            create: jest.fn().mockResolvedValue({
+              id: 'invoice-setup',
+              invoiceNumber: 'INV-2026-000001',
+              total: new Decimal(10500),
+            }),
+          },
+          invoiceItem: {
+            createMany: jest.fn().mockImplementation((data) => {
+              capturedLineItems = data.data;
+              return Promise.resolve();
+            }),
+          },
+        });
+      });
+
+      await service.generateInvoiceFromContract({ contractId: 'contract-123' });
+
+      // Should have 2 line items: subscription + setup fee
+      expect(capturedLineItems).toHaveLength(2);
+      expect(capturedLineItems[1].description).toBe('Setup Fee (one-time)');
+      expect(capturedLineItems[1].amount.toString()).toBe('500');
+    });
+
+    it('should throw error when shouldBillProduct returns false', async () => {
+      mockPrismaService.contract.findUnique.mockResolvedValue(mockContractWithSetupFee);
+      mockPrismaService.invoice.count.mockResolvedValue(0);
+
+      // Spy on shouldBillProduct to return false
+      jest.spyOn(service, 'shouldBillProduct').mockReturnValue(false);
+
+      await expect(
+        service.generateInvoiceFromContract({ contractId: 'contract-123' }),
+      ).rejects.toThrow('Product billing skipped for period');
     });
   });
 

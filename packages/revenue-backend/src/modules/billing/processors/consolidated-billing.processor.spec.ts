@@ -156,6 +156,37 @@ describe('ConsolidatedBillingProcessor', () => {
       expect(Logger.prototype.error).not.toHaveBeenCalled();
     });
 
+    it('should log error in non-test environment when job fails', async () => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      const jobData = {
+        parentAccountId: 'parent-prod',
+        periodStart: '2026-03-01',
+        periodEnd: '2026-03-31',
+      };
+
+      const mockJob = {
+        id: 'job-prod',
+        data: jobData,
+      } as Job;
+
+      const error = new Error('Production error');
+      mockConsolidatedBillingService.generateConsolidatedInvoice.mockRejectedValue(
+        error,
+      );
+
+      await expect(processor.process(mockJob)).rejects.toThrow('Production error');
+
+      // In non-test environment, error should be logged
+      expect(Logger.prototype.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to generate consolidated invoice'),
+        error.stack,
+      );
+
+      process.env.NODE_ENV = originalNodeEnv;
+    });
+
     it('should return correct job result structure with Decimal conversion', async () => {
       const jobData = {
         parentAccountId: 'parent-999',

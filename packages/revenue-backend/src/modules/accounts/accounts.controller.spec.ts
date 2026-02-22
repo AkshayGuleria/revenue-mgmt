@@ -13,6 +13,10 @@ describe('AccountsController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    getHierarchy: jest.fn(),
+    getChildren: jest.fn(),
+    getAncestors: jest.fn(),
+    getDescendants: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -97,6 +101,54 @@ describe('AccountsController', () => {
       await controller.remove(id);
       expect(service.remove).toHaveBeenCalledWith(id);
       expect(service.remove).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getHierarchy', () => {
+    it('should call service.getHierarchy with id', async () => {
+      const id = 'root-123';
+      const result = { data: { id: 'root-123', children: [] }, paging: {} };
+      mockAccountsService.getHierarchy.mockResolvedValue(result);
+
+      expect(await controller.getHierarchy(id)).toBe(result);
+      expect(service.getHierarchy).toHaveBeenCalledWith(id);
+      expect(service.getHierarchy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getChildren', () => {
+    it('should call service.getChildren with id', async () => {
+      const id = 'parent-123';
+      const result = { data: [], paging: { total: 0 } };
+      mockAccountsService.getChildren.mockResolvedValue(result);
+
+      expect(await controller.getChildren(id)).toBe(result);
+      expect(service.getChildren).toHaveBeenCalledWith(id);
+      expect(service.getChildren).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getAncestors', () => {
+    it('should call service.getAncestors with id', async () => {
+      const id = 'child-123';
+      const result = { data: [], paging: { total: 0 } };
+      mockAccountsService.getAncestors.mockResolvedValue(result);
+
+      expect(await controller.getAncestors(id)).toBe(result);
+      expect(service.getAncestors).toHaveBeenCalledWith(id);
+      expect(service.getAncestors).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getDescendants', () => {
+    it('should call service.getDescendants with id', async () => {
+      const id = 'root-123';
+      const result = { data: [], paging: { total: 0 } };
+      mockAccountsService.getDescendants.mockResolvedValue(result);
+
+      expect(await controller.getDescendants(id)).toBe(result);
+      expect(service.getDescendants).toHaveBeenCalledWith(id);
+      expect(service.getDescendants).toHaveBeenCalledTimes(1);
     });
   });
 });

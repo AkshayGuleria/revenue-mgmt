@@ -207,6 +207,40 @@ describe('AccountsService', () => {
         }),
       );
     });
+
+    it('should rethrow non-P2002 prisma errors on create', async () => {
+      const genericError = new Error('Generic DB error');
+      mockPrismaService.account.create.mockRejectedValue(genericError);
+
+      await expect(service.create(createAccountDto)).rejects.toThrow(
+        'Generic DB error',
+      );
+    });
+
+    it('should throw BadRequestException when parentAccountId equals primaryContactEmail (circular hierarchy guard)', async () => {
+      // This covers the check: `if (parentAccountId === data.primaryContactEmail)`
+      // which is a guard to prevent a degenerate circular hierarchy case
+      const circularEmail = 'circular@test.com';
+      const dtoWithCircular = {
+        accountName: 'Circular Corp',
+        primaryContactEmail: circularEmail,
+        accountType: AccountType.ENTERPRISE,
+        parentAccountId: circularEmail, // same as primaryContactEmail
+      };
+
+      // The parent account "exists" (to pass the first check)
+      mockPrismaService.account.findUnique.mockResolvedValue({
+        id: circularEmail,
+        accountName: 'Some Account',
+      });
+
+      await expect(service.create(dtoWithCircular as any)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.create(dtoWithCircular as any)).rejects.toThrow(
+        'Cannot create circular account hierarchy',
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -539,6 +573,26 @@ describe('AccountsService', () => {
         }),
       ).rejects.toThrow(ConflictException);
     });
+
+    it('should rethrow non-P2002 prisma errors on update', async () => {
+      const genericError = new Error('Generic DB error on update');
+      mockPrismaService.account.update.mockRejectedValue(genericError);
+
+      await expect(
+        service.update('account-1', { accountName: 'New Name' }),
+      ).rejects.toThrow('Generic DB error on update');
+    });
+
+    it('should update account when parentAccountId is explicitly set to null', async () => {
+      mockPrismaService.account.update.mockResolvedValue({
+        ...mockAccount,
+        parentAccountId: null,
+      });
+
+      const result = await service.update('account-1', { parentAccountId: null });
+
+      expect(result.data.parentAccountId).toBeNull();
+    });
   });
 
   describe('remove', () => {
@@ -771,6 +825,29 @@ describe('AccountsService', () => {
       expect(result.data).toHaveLength(0);
       expect(result.paging.total).toBe(0);
     });
+
+    it('should throw NotFoundException if account not found', async () => {
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(null);
+
+      await expect(service.getAncestors('invalid-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should stop traversal if a parent account is deleted', async () => {
+      const account = { id: 'child-id', parentAccountId: 'parent-id', deletedAt: null };
+      const deletedParent = { id: 'parent-id', parentAccountId: null, deletedAt: new Date() };
+
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(account as any)
+        .mockResolvedValueOnce(deletedParent as any);
+
+      const result = await service.getAncestors('child-id');
+
+      // Deleted parent should be excluded
+      expect(result.data).toHaveLength(0);
+    });
   });
 
   describe('getDescendants', () => {
@@ -818,6 +895,75 @@ describe('AccountsService', () => {
 
       expect(result.data).toHaveLength(0);
       expect(result.paging.total).toBe(0);
+    });
+
+    it('should throw NotFoundException if account not found for getDescendants', async () => {
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(null);
+
+      await expect(service.getDescendants('invalid-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should stop descendant traversal at maxDepth (5 levels)', async () => {
+      // This covers the `if (currentDepth >= maxDepth) return;` branch (line 423)
+      // by setting up 5 levels of children so the 6th level call exits early
+      const rootAccount = { id: 'root-id', deletedAt: null };
+
+      // Save originals
+      const originalFindUnique = mockPrismaService.account.findUnique;
+      const originalFindMany = mockPrismaService.account.findMany;
+
+      mockPrismaService.account.findUnique = jest.fn().mockResolvedValue(rootAccount);
+
+      // Build 5 levels: each level has one child
+      const levels = [
+        [{ id: 'l1', accountName: 'L1', parentAccountId: 'root-id' }],
+        [{ id: 'l2', accountName: 'L2', parentAccountId: 'l1' }],
+        [{ id: 'l3', accountName: 'L3', parentAccountId: 'l2' }],
+        [{ id: 'l4', accountName: 'L4', parentAccountId: 'l3' }],
+        [{ id: 'l5', accountName: 'L5', parentAccountId: 'l4' }],
+        // At depth=5 (maxDepth), collectDescendants returns early without calling findMany
+      ];
+      let callCount = 0;
+      mockPrismaService.account.findMany = jest.fn().mockImplementation(() => {
+        const result = levels[callCount] ?? [];
+        callCount++;
+        return Promise.resolve(result);
+      });
+
+      const result = await service.getDescendants('root-id');
+
+      // Restore originals
+      mockPrismaService.account.findUnique = originalFindUnique;
+      mockPrismaService.account.findMany = originalFindMany;
+
+      // All 5 descendants should be collected
+      expect(result.data).toHaveLength(5);
+      // Exactly 5 findMany calls (depths 0-4); depth 5 returns early without a findMany call
+      expect(callCount).toBe(5);
+    });
+  });
+
+  describe('getHierarchy — maxDepth boundary', () => {
+    it('should stop recursion at maxDepth', async () => {
+      const rootAccount = {
+        id: 'root-id',
+        accountName: 'Root Account',
+        parentAccountId: null,
+        deletedAt: null,
+      };
+
+      // getHierarchy with maxDepth=0 should return children: []
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(rootAccount as any);
+
+      const result = await service.getHierarchy('root-id', 0);
+
+      expect(result.data).toBeDefined();
+      // At maxDepth=0, buildAccountTree returns { ...account, children: [] }
+      expect(result.data.children).toHaveLength(0);
     });
   });
 });
