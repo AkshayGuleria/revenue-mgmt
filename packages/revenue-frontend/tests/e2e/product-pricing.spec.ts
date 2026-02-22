@@ -417,6 +417,7 @@ test.describe('Product Pricing — Edit Form', () => {
   const EDIT_PRODUCT = MOCK_PRODUCTS[0]; // seat_based, recurring, platform
 
   test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await mockConfigApi(page);
 
     // Mock the individual product GET

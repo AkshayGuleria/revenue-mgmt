@@ -586,6 +586,7 @@ test.describe('Product Edit Form', () => {
   const PRODUCT = MOCK_PRODUCTS[0];
 
   test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.route('**/api/config', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(EUR_CONFIG) })
     );

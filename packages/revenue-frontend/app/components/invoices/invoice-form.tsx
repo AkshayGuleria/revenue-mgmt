@@ -327,7 +327,7 @@ export function InvoiceForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6" noValidate>
         {/* Invoice Header */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Invoice Information</h3>
