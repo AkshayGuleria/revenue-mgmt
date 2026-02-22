@@ -67,7 +67,7 @@ export function useDashboardStats() {
         : [];
       const pendingInvoicesCount = pendingInvoicesData?.paging?.total || pendingInvoicesList.length;
       const pendingInvoicesTotalValue = pendingInvoicesList.reduce(
-        (sum, invoice) => sum + (invoice.total || 0),
+        (sum, invoice) => sum + (parseFloat(invoice.total as unknown as string) || 0),
         0
       );
 
@@ -81,7 +81,7 @@ export function useDashboardStats() {
           const paidDate = invoice.paidDate ? new Date(invoice.paidDate) : null;
           return paidDate && paidDate >= currentMonthStart;
         })
-        .reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+        .reduce((sum, invoice) => sum + (parseFloat(invoice.total as unknown as string) || 0), 0);
 
       return {
         totalAccounts,
