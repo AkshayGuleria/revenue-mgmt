@@ -80,7 +80,7 @@ jobs:
           retention-days: 7
 
   test-e2e:
-    name: E2E Tests
+    name: E2E Tests (Desktop)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -100,12 +100,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers (desktop only)
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Run Playwright tests
         run: npm run test:e2e
-        continue-on-error: true
+        env:
+          CI: true
 
       - name: Upload Playwright report
         if: always()
@@ -116,7 +117,7 @@ jobs:
           retention-days: 7
 
       - name: Upload test results
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
