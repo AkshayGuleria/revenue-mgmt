@@ -8,6 +8,7 @@ import { queryKeys } from "../query-client";
 import { useAccounts } from "./use-accounts";
 import { useContracts } from "./use-contracts";
 import { useInvoices } from "./use-invoices";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 interface DashboardStats {
   totalAccounts: number;
@@ -102,6 +103,8 @@ export function useDashboardStats() {
  * Returns recent invoices, contracts, and accounts for activity feed
  */
 export function useRecentActivity() {
+  const { defaultCurrency } = useConfigStore();
+
   // Fetch recent invoices
   const { data: recentInvoices } = useInvoices({
     "limit[eq]": 5,
@@ -133,7 +136,7 @@ export function useRecentActivity() {
           type: "invoice" as const,
           id: invoice.id,
           title: `New invoice generated`,
-          description: `Invoice ${invoice.invoiceNumber} for ${invoice.account?.accountName || "Unknown"} - $${invoice.total?.toLocaleString() || "0"}`,
+          description: `Invoice ${invoice.invoiceNumber} for ${invoice.account?.accountName || "Unknown"} - ${new Intl.NumberFormat("en-US", { style: "currency", currency: defaultCurrency, maximumFractionDigits: 0 }).format(invoice.total || 0)}`,
           timestamp: invoice.createdAt || invoice.issueDate,
           icon: "receipt" as const,
         })),

@@ -13,7 +13,7 @@ import {
   Building2,
   FileText,
   Receipt,
-  DollarSign,
+  TrendingUp,
   Zap,
   FileSpreadsheet
 } from "lucide-react";
@@ -62,7 +62,7 @@ export default function Dashboard() {
       value: formatCurrency(stats?.monthlyRevenue || 0),
       description: "Revenue this month",
       gradient: "from-purple-500 to-purple-600",
-      icon: DollarSign,
+      icon: TrendingUp,
     },
   ];
 
