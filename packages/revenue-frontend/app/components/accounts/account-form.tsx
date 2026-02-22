@@ -3,7 +3,7 @@
  * Form for creating and editing accounts with validation
  */
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Info, CreditCard, DollarSign, MapPin } from "lucide-react";
@@ -28,6 +28,8 @@ import {
 import type { Account, CreateAccountDto, UpdateAccountDto } from "~/types/models";
 import { AccountType, AccountStatus, PaymentTerms } from "~/types/models";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
+import { CurrencySelect } from "~/components/ui/currency-select";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 // Validation schema
 const accountFormSchema = z.object({
@@ -74,6 +76,8 @@ export function AccountForm({
   isLoading,
   mode,
 }: AccountFormProps) {
+  const { defaultCurrency } = useConfigStore();
+
   // Fetch parent accounts for hierarchy selection
   const { data: accountsData } = useAccounts();
   const parentAccounts = Array.isArray(accountsData?.data)
@@ -81,7 +85,7 @@ export function AccountForm({
     : [];
 
   const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountFormSchema),
+    resolver: zodResolver(accountFormSchema) as Resolver<AccountFormValues>,
     defaultValues: {
       accountName: account?.accountName || "",
       primaryContactEmail: account?.primaryContactEmail || "",
@@ -98,7 +102,7 @@ export function AccountForm({
       billingPostalCode: account?.billingPostalCode || "",
       billingCountry: account?.billingCountry || "USA",
       paymentTerms: account?.paymentTerms || PaymentTerms.NET_30,
-      currency: account?.currency || "USD",
+      currency: account?.currency || defaultCurrency,
       taxId: account?.taxId || "",
       creditLimit: account?.creditLimit,
     },
@@ -308,7 +312,10 @@ export function AccountForm({
                 <FormItem>
                   <FormLabel>Currency</FormLabel>
                   <FormControl>
-                    <Input placeholder="USD" {...field} />
+                    <CurrencySelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

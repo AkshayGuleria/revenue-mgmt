@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
 import { AccountsModule } from './accounts.module';
 import { AccountsService } from './accounts.service';
 import { AccountsController } from './accounts.controller';
@@ -9,7 +10,7 @@ describe('AccountsModule', () => {
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
-      imports: [AccountsModule, PrismaModule],
+      imports: [ConfigModule.forRoot({ isGlobal: true }), AccountsModule, PrismaModule],
     }).compile();
   });
 
@@ -30,7 +31,7 @@ describe('AccountsModule', () => {
 
   it('should export AccountsService', async () => {
     const testModule = await Test.createTestingModule({
-      imports: [AccountsModule, PrismaModule],
+      imports: [ConfigModule.forRoot({ isGlobal: true }), AccountsModule, PrismaModule],
     }).compile();
 
     const accountsService = testModule.get<AccountsService>(AccountsService);

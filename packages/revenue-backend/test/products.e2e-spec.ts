@@ -15,6 +15,7 @@ import {
 describe('Products API (e2e)', () => {
   let app: NestFastifyApplication;
   let prisma: PrismaService;
+  let defaultCurrency: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -43,6 +44,10 @@ describe('Products API (e2e)', () => {
         name: { contains: 'Test Product' },
       },
     });
+
+    // Fetch default currency from /api/config so tests aren't hardcoded
+    const configRes = await request(app.getHttpServer()).get('/api/config');
+    defaultCurrency = configRes.body?.data?.defaultCurrency ?? 'EUR';
   });
 
   afterAll(async () => {
@@ -75,7 +80,7 @@ describe('Products API (e2e)', () => {
           expect(res.body.data).toMatchObject({
             name: 'Test Product Enterprise',
             pricingModel: 'seat_based',
-            currency: 'USD',
+            currency: defaultCurrency,
             active: true,
             isAddon: false,
           });

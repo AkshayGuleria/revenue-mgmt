@@ -521,6 +521,31 @@ describe('BillingController', () => {
         includeChildren: false,
       });
     });
+
+    it('should default includeChildren to true when not provided in queue request', async () => {
+      const dto = {
+        parentAccountId: 'parent-default',
+        periodStart: '2026-03-01',
+        periodEnd: '2026-03-31',
+        // includeChildren is not provided (undefined)
+      };
+
+      mockBillingQueue.queueConsolidatedInvoiceGeneration.mockResolvedValue(
+        'job-default',
+      );
+
+      const result = await controller.queueConsolidatedInvoiceGeneration(dto);
+
+      expect(result.data.jobId).toBe('job-default');
+      expect(
+        mockBillingQueue.queueConsolidatedInvoiceGeneration,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          parentAccountId: 'parent-default',
+          includeChildren: true,
+        }),
+      );
+    });
   });
 
   describe('getConsolidatedQueueStats', () => {

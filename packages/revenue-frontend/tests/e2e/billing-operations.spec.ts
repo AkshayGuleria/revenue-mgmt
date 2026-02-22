@@ -9,8 +9,73 @@ import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'http://localhost:5173';
 
+// ---------------------------------------------------------------------------
+// Shared mock helpers
+// ---------------------------------------------------------------------------
+
+const MOCK_CONTRACTS = [
+  {
+    id: 'contract-001',
+    contractName: 'Acme Enterprise Contract',
+    account: { accountName: 'Acme Corp' },
+    status: 'active',
+    startDate: '2024-01-01',
+    endDate: '2024-12-31',
+  },
+  {
+    id: 'contract-002',
+    contractName: 'Globex SaaS Agreement',
+    account: { accountName: 'Globex Inc' },
+    status: 'active',
+    startDate: '2024-06-01',
+    endDate: '2025-05-31',
+  },
+];
+
+const MOCK_ACCOUNTS = [
+  {
+    id: 'acc-001',
+    accountName: 'Acme Corp',
+    accountType: 'enterprise',
+    status: 'active',
+  },
+  {
+    id: 'acc-002',
+    accountName: 'Globex Inc',
+    accountType: 'enterprise',
+    status: 'active',
+  },
+];
+
+function mockContractsApi(page: any) {
+  return page.route('**/api/contracts**', (route: any) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: MOCK_CONTRACTS,
+        paging: { offset: 0, limit: 100, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+      }),
+    })
+  );
+}
+
+function mockAccountsApi(page: any) {
+  return page.route('**/api/accounts**', (route: any) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: MOCK_ACCOUNTS,
+        paging: { offset: 0, limit: 100, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+      }),
+    })
+  );
+}
+
 test.describe('Billing - Generate Invoice', () => {
   test.beforeEach(async ({ page }) => {
+    await mockContractsApi(page);
     await page.goto(`${BASE_URL}/billing/generate`);
     await page.waitForLoadState('networkidle');
   });
@@ -29,46 +94,104 @@ test.describe('Billing - Generate Invoice', () => {
     await expect(page.locator('text=Contract is required')).toBeVisible();
   });
 
-  test('should load contracts in dropdown', async ({ page }) => {
+  test('should load contracts in dropdown from mocked API', async ({ page }) => {
     const contractSelect = page.locator('[role="combobox"]').first();
     await contractSelect.click();
-    // Dropdown opens with at least one contract option
+    await expect(page.locator('[role="option"]:has-text("Acme Enterprise Contract")')).toBeVisible();
+    await expect(page.locator('[role="option"]:has-text("Globex SaaS Agreement")')).toBeVisible();
+  });
+
+  test('should show empty state when no contracts are available', async ({ page }) => {
+    // Override mock to return empty list
+    await page.route('**/api/contracts**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [],
+          paging: { offset: 0, limit: 100, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+        }),
+      })
+    );
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const contractSelect = page.locator('[role="combobox"]').first();
+    await contractSelect.click();
+    // Dropdown should be empty or show no options
     const options = page.locator('[role="option"]');
-    await expect(options.first()).toBeVisible({ timeout: 5000 });
+    await expect(options).toHaveCount(0);
   });
 
-  test('should submit generate invoice with valid data', async ({ page }) => {
-    // Select first contract
+  test('should show error toast when generate invoice API returns 500', async ({ page }) => {
+    await page.route('**/api/billing/generate', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: { code: 'INTERNAL_ERROR', message: 'Internal server error', statusCode: 500 },
+        }),
+      })
+    );
+
     const contractSelect = page.locator('[role="combobox"]').first();
     await contractSelect.click();
     await page.locator('[role="option"]').first().click();
 
-    // Dates are pre-filled; just submit
     await page.click('button[type="submit"]');
-
-    // Should show success toast or navigate away (or show error if contract not billable)
     await page.waitForTimeout(2000);
-    const toastOrNav = page.locator('.sonner-toast').or(page.locator('[data-sonner-toast]'));
+
+    // Should show an error toast and stay on the same page
+    const toast = page.locator('[data-sonner-toast]').or(page.locator('.sonner-toast'));
     const currentUrl = page.url();
-    const navigatedAway = !currentUrl.includes('/billing/generate');
-    const toastVisible = await toastOrNav.count() > 0;
-    expect(navigatedAway || toastVisible).toBeTruthy();
+    const stayedOnPage = currentUrl.includes('/billing/generate');
+    const toastVisible = await toast.count() > 0;
+    expect(stayedOnPage || toastVisible).toBeTruthy();
   });
 
-  test('should queue invoice when async checkbox is checked', async ({ page }) => {
-    // Select first contract
+  test('should submit generate invoice with valid data (mocked success)', async ({ page }) => {
+    await page.route('**/api/billing/generate', (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { id: 'inv-001', invoiceNumber: 'INV-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      })
+    );
+
     const contractSelect = page.locator('[role="combobox"]').first();
     await contractSelect.click();
     await page.locator('[role="option"]').first().click();
 
-    // Check async checkbox
+    await page.click('button[type="submit"]');
+    await page.waitForURL(`${BASE_URL}/invoices/inv-001`, { timeout: 5000 });
+    expect(page.url()).toContain('/invoices/inv-001');
+  });
+
+  test('should queue invoice when async checkbox is checked (mocked success)', async ({ page }) => {
+    await page.route('**/api/billing/queue', (route) =>
+      route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { jobId: 'job-abc123' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      })
+    );
+
+    const contractSelect = page.locator('[role="combobox"]').first();
+    await contractSelect.click();
+    await page.locator('[role="option"]').first().click();
+
     await page.check('#async');
     await expect(page.locator('button[type="submit"]')).toContainText('Queue Invoice');
 
     await page.click('button[type="submit"]');
     await page.waitForTimeout(2000);
 
-    // Should navigate to job status page or show toast
     const currentUrl = page.url();
     const navigatedToJob = currentUrl.includes('/billing/jobs/');
     const toast = page.locator('[data-sonner-toast]').or(page.locator('.sonner-toast'));
@@ -84,10 +207,16 @@ test.describe('Billing - Generate Invoice', () => {
   test('should send correct field names to backend (periodStart/periodEnd)', async ({ page }) => {
     let requestBody: Record<string, unknown> = {};
 
-    page.on('request', (req) => {
-      if (req.url().includes('/api/billing/generate') && req.method() === 'POST') {
-        requestBody = JSON.parse(req.postData() || '{}');
-      }
+    await page.route('**/api/billing/generate', (route) => {
+      requestBody = JSON.parse(route.request().postData() || '{}');
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { id: 'inv-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      });
     });
 
     const contractSelect = page.locator('[role="combobox"]').first();
@@ -95,7 +224,7 @@ test.describe('Billing - Generate Invoice', () => {
     await page.locator('[role="option"]').first().click();
 
     await page.click('button[type="submit"]');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     // Verify correct field names are sent
     expect(requestBody).toHaveProperty('contractId');
@@ -104,6 +233,31 @@ test.describe('Billing - Generate Invoice', () => {
     expect(requestBody).not.toHaveProperty('billingPeriodStart');
     expect(requestBody).not.toHaveProperty('billingPeriodEnd');
     expect(requestBody).not.toHaveProperty('async');
+  });
+
+  test('submit button should be disabled while generating', async ({ page }) => {
+    // Slow API to observe loading state
+    await page.route('**/api/billing/generate', async (route) => {
+      await new Promise((r) => setTimeout(r, 1000));
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { id: 'inv-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      });
+    });
+
+    const contractSelect = page.locator('[role="combobox"]').first();
+    await contractSelect.click();
+    await page.locator('[role="option"]').first().click();
+
+    await page.click('button[type="submit"]');
+
+    // While pending the button text changes to "Generating..."
+    const submitBtn = page.locator('button[type="submit"]');
+    await expect(submitBtn).toContainText('Generating...', { timeout: 2000 });
   });
 });
 
@@ -124,33 +278,58 @@ test.describe('Billing - Batch Billing', () => {
     await expect(page.locator('text=Batch billing is always processed asynchronously')).toBeVisible();
   });
 
-  test('should submit batch billing and navigate to job status', async ({ page }) => {
-    let requestBody: Record<string, unknown> = {};
+  test('should submit batch billing and navigate to job status (mocked success)', async ({ page }) => {
+    await page.route('**/api/billing/batch', (route) =>
+      route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { jobId: 'job-batch-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      })
+    );
 
-    page.on('request', (req) => {
-      if (req.url().includes('/api/billing/batch') && req.method() === 'POST') {
-        requestBody = JSON.parse(req.postData() || '{}');
-      }
-    });
+    await page.click('button[type="submit"]');
+    await page.waitForURL(/\/billing\/jobs\//, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/billing\/jobs\//);
+  });
+
+  test('should show error toast when batch billing API returns 500', async ({ page }) => {
+    await page.route('**/api/billing/batch', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: { code: 'INTERNAL_ERROR', message: 'Internal server error', statusCode: 500 },
+        }),
+      })
+    );
 
     await page.click('button[type="submit"]');
     await page.waitForTimeout(2000);
 
-    // Should navigate to job status page
-    await expect(page).toHaveURL(/\/billing\/jobs\//);
+    // Should stay on the page (not navigate)
+    expect(page.url()).toContain('/billing/batch');
   });
 
   test('should send correct field names to backend (billingDate/billingPeriod)', async ({ page }) => {
     let requestBody: Record<string, unknown> = {};
 
-    page.on('request', (req) => {
-      if (req.url().includes('/api/billing/batch') && req.method() === 'POST') {
-        requestBody = JSON.parse(req.postData() || '{}');
-      }
+    await page.route('**/api/billing/batch', (route) => {
+      requestBody = JSON.parse(route.request().postData() || '{}');
+      route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { jobId: 'job-batch-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      });
     });
 
     await page.click('button[type="submit"]');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     // Verify only valid backend fields are sent
     expect(requestBody).not.toHaveProperty('billingPeriodStart');
@@ -162,10 +341,16 @@ test.describe('Billing - Batch Billing', () => {
   test('should filter by billing period when selected', async ({ page }) => {
     let requestBody: Record<string, unknown> = {};
 
-    page.on('request', (req) => {
-      if (req.url().includes('/api/billing/batch') && req.method() === 'POST') {
-        requestBody = JSON.parse(req.postData() || '{}');
-      }
+    await page.route('**/api/billing/batch', (route) => {
+      requestBody = JSON.parse(route.request().postData() || '{}');
+      route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { jobId: 'job-batch-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      });
     });
 
     // Select a billing period
@@ -174,7 +359,7 @@ test.describe('Billing - Batch Billing', () => {
     await page.locator('[role="option"]:has-text("Monthly")').click();
 
     await page.click('button[type="submit"]');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     expect(requestBody.billingPeriod).toBe('monthly');
   });
@@ -187,6 +372,7 @@ test.describe('Billing - Batch Billing', () => {
 
 test.describe('Billing - Consolidated Invoice', () => {
   test.beforeEach(async ({ page }) => {
+    await mockAccountsApi(page);
     await page.goto(`${BASE_URL}/billing/consolidated`);
     await page.waitForLoadState('networkidle');
   });
@@ -209,52 +395,101 @@ test.describe('Billing - Consolidated Invoice', () => {
     await expect(page.locator('text=Parent account is required')).toBeVisible();
   });
 
-  test('should load parent accounts in dropdown', async ({ page }) => {
+  test('should load parent accounts in dropdown from mocked API', async ({ page }) => {
     const accountSelect = page.locator('[role="combobox"]').first();
     await accountSelect.click();
-    // Note: consolidated billing shows accounts that have children
-    // If no parent accounts exist, the dropdown may be empty — that's still valid
-    await page.waitForTimeout(1000);
-    // Just verify the dropdown opened without error
-    await expect(page.locator('[role="combobox"]').first()).toBeVisible();
+    await expect(page.locator('[role="option"]:has-text("Acme Corp")')).toBeVisible();
+    await expect(page.locator('[role="option"]:has-text("Globex Inc")')).toBeVisible();
   });
 
-  test('should submit consolidated invoice with valid data', async ({ page }) => {
-    // Select an account (any account — the backend will validate parent/child)
+  test('should show empty dropdown when no accounts returned', async ({ page }) => {
+    await page.route('**/api/accounts**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [],
+          paging: { offset: 0, limit: 100, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+        }),
+      })
+    );
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
     const accountSelect = page.locator('[role="combobox"]').first();
     await accountSelect.click();
-
     const options = page.locator('[role="option"]');
-    if (await options.count() > 0) {
-      await options.first().click();
+    await expect(options).toHaveCount(0);
+  });
 
-      await page.click('button[type="submit"]');
-      await page.waitForTimeout(2000);
+  test('should submit consolidated invoice with valid data (mocked success)', async ({ page }) => {
+    await page.route('**/api/billing/consolidated', (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { id: 'inv-cons-001', invoiceNumber: 'CONS-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      })
+    );
 
-      // Should show a toast (success or error) or navigate away
-      const toast = page.locator('[data-sonner-toast]').or(page.locator('.sonner-toast'));
-      const currentUrl = page.url();
-      const navigatedAway = !currentUrl.includes('/billing/consolidated');
-      const toastVisible = await toast.count() > 0;
-      expect(navigatedAway || toastVisible).toBeTruthy();
-    }
+    const accountSelect = page.locator('[role="combobox"]').first();
+    await accountSelect.click();
+    await page.locator('[role="option"]').first().click();
+    await page.waitForTimeout(300);
+
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(2000);
+
+    const toast = page.locator('[data-sonner-toast]').or(page.locator('.sonner-toast'));
+    const currentUrl = page.url();
+    const navigatedAway = !currentUrl.includes('/billing/consolidated');
+    const toastVisible = await toast.count() > 0;
+    expect(navigatedAway || toastVisible).toBeTruthy();
+  });
+
+  test('should show error when consolidated billing API returns 500', async ({ page }) => {
+    await page.route('**/api/billing/consolidated', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: { code: 'INTERNAL_ERROR', message: 'Server error', statusCode: 500 },
+        }),
+      })
+    );
+
+    const accountSelect = page.locator('[role="combobox"]').first();
+    await accountSelect.click();
+    await page.locator('[role="option"]').first().click();
+    await page.waitForTimeout(300);
+
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(2000);
+
+    // Should stay on page
+    expect(page.url()).toContain('/billing/consolidated');
   });
 
   test('should send correct field names to backend (periodStart/periodEnd/includeChildren)', async ({ page }) => {
     let requestBody: Record<string, unknown> = {};
 
-    page.on('request', (req) => {
-      if (req.url().includes('/api/billing/consolidated') && req.method() === 'POST') {
-        requestBody = JSON.parse(req.postData() || '{}');
-      }
+    await page.route('**/api/billing/consolidated', (route) => {
+      requestBody = JSON.parse(route.request().postData() || '{}');
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: { id: 'inv-cons-001' },
+          paging: { offset: null, limit: null, total: null, totalPages: null, hasNext: null, hasPrev: null },
+        }),
+      });
     });
 
     const accountSelect = page.locator('[role="combobox"]').first();
     await accountSelect.click();
-    const options = page.locator('[role="option"]');
-    await expect(options.first()).toBeVisible({ timeout: 5000 });
-    await options.first().click();
-    // Wait for dropdown portal to close
+    await page.locator('[role="option"]').first().click();
     await page.waitForTimeout(500);
 
     await page.click('button[type="submit"]');
@@ -277,10 +512,7 @@ test.describe('Billing - Consolidated Invoice', () => {
   test('should queue consolidated invoice when async is checked', async ({ page }) => {
     const accountSelect = page.locator('[role="combobox"]').first();
     await accountSelect.click();
-    const options = page.locator('[role="option"]');
-    await expect(options.first()).toBeVisible({ timeout: 5000 });
-    await options.first().click();
-    // Wait for dropdown portal to fully close before interacting with checkbox
+    await page.locator('[role="option"]').first().click();
     await page.waitForTimeout(500);
 
     await page.check('#async', { force: true });

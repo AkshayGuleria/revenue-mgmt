@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateAccountDto, UpdateAccountDto, QueryAccountsDto } from './dto';
 import { Prisma } from '@prisma/client';
@@ -17,10 +18,17 @@ import { ApiResponse } from '../../common/interfaces';
 
 @Injectable()
 export class AccountsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
 
   async create(createAccountDto: CreateAccountDto): Promise<ApiResponse<any>> {
     const { parentAccountId, ...data } = createAccountDto;
+    const currency =
+      data.currency ??
+      this.configService.get<string>('DEFAULT_CURRENCY', 'EUR');
+    data.currency = currency;
 
     // Validate parent account exists if provided
     if (parentAccountId) {

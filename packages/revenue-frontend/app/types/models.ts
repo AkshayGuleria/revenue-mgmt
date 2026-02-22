@@ -69,6 +69,22 @@ export enum BillingInterval {
   ANNUAL = "annual",
 }
 
+export enum ChargeType {
+  RECURRING = "recurring",
+  ONE_TIME = "one_time",
+  USAGE_BASED = "usage_based", // Phase 6 — field added, billing logic deferred
+}
+
+export enum ProductCategory {
+  PLATFORM = "platform",
+  SEATS = "seats",
+  ADDON = "addon",
+  SUPPORT = "support",
+  PROFESSIONAL_SERVICES = "professional_services",
+  STORAGE = "storage", // Phase 6
+  API = "api", // Phase 6
+}
+
 // ============================================================================
 // ACCOUNT TYPES
 // ============================================================================
@@ -198,6 +214,10 @@ export interface Product {
   basePrice?: number;
   currency: string;
 
+  // Charge type & category (Phase 3.5)
+  chargeType: ChargeType;
+  category: ProductCategory;
+
   // Seat-based options
   minSeats?: number;
   maxSeats?: number;
@@ -208,6 +228,12 @@ export interface Product {
 
   // Configuration
   billingInterval?: BillingInterval;
+
+  // Subscription & commitment fields (Phase 3.5)
+  setupFee?: number;
+  trialPeriodDays?: number;
+  minCommitmentMonths?: number;
+
   active: boolean;
   isAddon: boolean;
 
@@ -371,6 +397,11 @@ export interface CreateProductDto {
   pricingModel: PricingModel;
   basePrice?: number;
   currency?: string;
+  chargeType?: ChargeType;
+  category?: ProductCategory;
+  setupFee?: number;
+  trialPeriodDays?: number;
+  minCommitmentMonths?: number;
   minSeats?: number;
   maxSeats?: number;
   seatIncrement?: number;

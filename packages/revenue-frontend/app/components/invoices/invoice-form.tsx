@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Card } from "~/components/ui/card";
@@ -36,6 +36,9 @@ import type {
   CreateInvoiceDto,
   UpdateInvoiceDto,
 } from "~/types/models";
+import { CurrencySelect } from "~/components/ui/currency-select";
+import { CurrencyDisplay } from "~/components/currency-display";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -51,7 +54,7 @@ const invoiceFormSchema = z.object({
   issueDate: z.string().min(1, "Issue date is required"),
   dueDate: z.string().min(1, "Due date is required"),
   status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "void"]),
-  currency: z.string().default("USD"),
+  currency: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(invoiceItemSchema).min(1, "At least one line item is required"),
   // Invoice-level tax and discount
@@ -88,6 +91,8 @@ export function InvoiceForm({
   onCancel,
   isLoading,
 }: InvoiceFormProps) {
+  const { defaultCurrency } = useConfigStore();
+
   const [selectedAccountId, setSelectedAccountId] = useState<string>(
     invoice?.accountId || ""
   );
@@ -110,7 +115,7 @@ export function InvoiceForm({
 
   // IMPORTANT: All hooks must be called before any conditional returns
   const form = useForm<InvoiceFormData>({
-    resolver: zodResolver(invoiceFormSchema),
+    resolver: zodResolver(invoiceFormSchema) as Resolver<InvoiceFormData>,
     defaultValues: invoice
       ? {
           accountId: invoice.accountId,
@@ -134,7 +139,7 @@ export function InvoiceForm({
             .toISOString()
             .split("T")[0],
           status: "draft",
-          currency: "USD",
+          currency: defaultCurrency,
           notes: "",
           items: [
             {
@@ -152,6 +157,8 @@ export function InvoiceForm({
     control: form.control,
     name: "items",
   });
+
+  const selectedCurrency = form.watch("currency") || defaultCurrency;
 
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -240,7 +247,7 @@ export function InvoiceForm({
       issueDate: data.issueDate,
       dueDate: data.dueDate,
       status: data.status,
-      currency: data.currency,
+      currency: data.currency || defaultCurrency,
       notes: data.notes,
       items,
       subtotal,
@@ -320,7 +327,7 @@ export function InvoiceForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6" noValidate>
         {/* Invoice Header */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Invoice Information</h3>
@@ -461,7 +468,10 @@ export function InvoiceForm({
                 <FormItem>
                   <FormLabel>Currency *</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <CurrencySelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -608,7 +618,7 @@ export function InvoiceForm({
                     <div className="text-sm">
                       <span className="text-gray-600">Amount: </span>
                       <span className="font-semibold">
-                        ${calculateLineTotal(index).toFixed(2)}
+                        <CurrencyDisplay amount={calculateLineTotal(index)} currency={selectedCurrency} />
                       </span>
                     </div>
                   </div>
@@ -623,14 +633,14 @@ export function InvoiceForm({
           <div className="max-w-md ml-auto space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
+              <CurrencyDisplay amount={totals.subtotal} currency={selectedCurrency} className="font-medium" />
             </div>
 
             {totals.discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Discount:</span>
                 <span className="text-green-600 font-medium">
-                  -${totals.discount.toFixed(2)}
+                  -<CurrencyDisplay amount={totals.discount} currency={selectedCurrency} />
                 </span>
               </div>
             )}
@@ -638,13 +648,13 @@ export function InvoiceForm({
             {totals.tax > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax:</span>
-                <span className="font-medium">${totals.tax.toFixed(2)}</span>
+                <CurrencyDisplay amount={totals.tax} currency={selectedCurrency} className="font-medium" />
               </div>
             )}
 
             <div className="border-t pt-3 flex justify-between text-lg font-semibold">
               <span>Total:</span>
-              <span>${totals.total.toFixed(2)}</span>
+              <CurrencyDisplay amount={totals.total} currency={selectedCurrency} />
             </div>
           </div>
         </Card>

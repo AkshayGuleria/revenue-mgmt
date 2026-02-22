@@ -3,7 +3,7 @@
  * Form for creating and editing contracts with validation
  */
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -29,6 +29,7 @@ import {
 import type { Contract, CreateContractDto, UpdateContractDto } from "~/types/models";
 import { ContractStatus, BillingFrequency, PaymentTerms } from "~/types/models";
 import { useAccounts } from "~/lib/api/hooks/use-accounts";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 // Validation schema
 const contractFormSchema = z.object({
@@ -66,12 +67,14 @@ export function ContractForm({
   isLoading,
   mode,
 }: ContractFormProps) {
+  const { defaultCurrency } = useConfigStore();
+
   // Fetch accounts for selection
   const { data: accountsData } = useAccounts({ "limit[eq]": 100 });
   const accounts = Array.isArray(accountsData?.data) ? accountsData.data : [];
 
   const form = useForm<ContractFormValues>({
-    resolver: zodResolver(contractFormSchema),
+    resolver: zodResolver(contractFormSchema) as Resolver<ContractFormValues>,
     defaultValues: {
       contractNumber: contract?.contractNumber || "",
       accountId: contract?.accountId || "",
@@ -188,7 +191,7 @@ export function ContractForm({
                   <FormControl>
                     <Input type="number" placeholder="100000" {...field} />
                   </FormControl>
-                  <FormDescription>Total contract value in USD</FormDescription>
+                  <FormDescription>Total contract value in {defaultCurrency}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

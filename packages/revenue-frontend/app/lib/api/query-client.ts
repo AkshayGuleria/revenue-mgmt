@@ -147,4 +147,9 @@ export const queryKeys = {
     recentActivity: () => [...queryKeys.dashboard.all, "recent-activity"] as const,
     expiringContracts: () => [...queryKeys.dashboard.all, "expiring-contracts"] as const,
   },
+
+  // App Config
+  config: {
+    all: ["app-config"] as const,
+  },
 } as const;

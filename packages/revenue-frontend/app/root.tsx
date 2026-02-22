@@ -13,6 +13,10 @@ import "./app.css";
 import { queryClient } from "~/lib/api/query-client";
 import { Toaster } from "~/components/ui/sonner";
 import { APP_NAME } from "~/lib/constants";
+import { apiClient } from "~/lib/api/client";
+import { queryKeys } from "~/lib/api/query-client";
+import { useConfigStore } from "~/lib/stores/config-store";
+import type { AppConfig } from "~/lib/api/hooks/use-config";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/svg+xml", href: "/favicon.png" },
@@ -47,6 +51,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   );
+}
+
+/**
+ * clientLoader runs before the root component renders on every navigation.
+ * It seeds the React Query cache AND the Zustand config store so all
+ * components see the correct currency on their very first render — no flash.
+ */
+export async function clientLoader() {
+  try {
+    const config = await queryClient.fetchQuery<AppConfig>({
+      queryKey: queryKeys.config.all,
+      queryFn: async () => {
+        const response = await apiClient.get<AppConfig>("/api/config");
+        return response.data as AppConfig;
+      },
+      staleTime: 30 * 60 * 1000,
+      retry: 0,
+    });
+    useConfigStore.getState().setConfig(
+      config.defaultCurrency,
+      config.supportedCurrencies,
+    );
+  } catch {
+    // Config failure is non-fatal; store retains its persisted/default value
+  }
+  return null;
 }
 
 export default function App() {

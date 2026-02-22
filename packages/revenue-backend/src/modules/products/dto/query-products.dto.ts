@@ -2,7 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BasePaginationDto } from '../../../common/dto/pagination.dto';
-import { PricingModel, BillingInterval } from './create-product.dto';
+import { PricingModel, BillingInterval, ChargeType, ProductCategory } from './create-product.dto';
 
 export class QueryProductsDto extends BasePaginationDto {
   @ApiPropertyOptional({
@@ -70,6 +70,40 @@ export class QueryProductsDto extends BasePaginationDto {
   @Type(() => Boolean)
   @IsBoolean()
   'active[eq]'?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Filter by charge type',
+    enum: ChargeType,
+    example: 'recurring',
+  })
+  @IsOptional()
+  @IsEnum(ChargeType)
+  'chargeType[eq]'?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by multiple charge types (comma-separated)',
+    example: 'recurring,one_time',
+  })
+  @IsOptional()
+  @IsString()
+  'chargeType[in]'?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by product category',
+    enum: ProductCategory,
+    example: 'addon',
+  })
+  @IsOptional()
+  @IsEnum(ProductCategory)
+  'category[eq]'?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by multiple categories (comma-separated)',
+    example: 'addon,support',
+  })
+  @IsOptional()
+  @IsString()
+  'category[in]'?: string;
 
   @ApiPropertyOptional({
     description: 'Filter addon products',

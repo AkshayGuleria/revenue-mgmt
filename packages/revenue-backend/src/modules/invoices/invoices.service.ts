@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   CreateInvoiceDto,
@@ -22,7 +23,10 @@ import { ApiResponse } from '../../common/interfaces';
 
 @Injectable()
 export class InvoicesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
 
   async create(createInvoiceDto: CreateInvoiceDto): Promise<ApiResponse<any>> {
     const {
@@ -36,6 +40,9 @@ export class InvoicesService {
       items,
       ...data
     } = createInvoiceDto;
+    data.currency =
+      data.currency ??
+      this.configService.get<string>('DEFAULT_CURRENCY', 'EUR');
 
     // Validate account exists
     const account = await this.prisma.account.findUnique({

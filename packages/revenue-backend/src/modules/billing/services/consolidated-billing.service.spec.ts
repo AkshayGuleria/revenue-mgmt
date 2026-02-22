@@ -213,6 +213,272 @@ describe('ConsolidatedBillingService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should throw BadRequestException if all contracts have zero billable amount', async () => {
+      const parentAccount = {
+        id: 'parent-id',
+        accountName: 'Parent Corp',
+        currency: 'USD',
+        paymentTermsDays: 30,
+        creditHold: false,
+        deletedAt: null,
+      };
+
+      // Contract with contractValue = 0 will result in zero total
+      const zeroValueContracts = [
+        {
+          id: 'contract-zero',
+          contractNumber: 'CNT-ZERO',
+          accountId: 'parent-id',
+          status: 'active',
+          contractValue: new Decimal(0),
+          billingFrequency: 'annual',
+          seatCount: null,
+          seatPrice: null,
+          account: { id: 'parent-id', accountName: 'Parent Corp' },
+          shares: [],
+        },
+      ];
+
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(parentAccount as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]); // No descendants
+      jest
+        .spyOn(prisma.contract, 'findMany')
+        .mockResolvedValueOnce(zeroValueContracts as any);
+
+      await expect(
+        service.generateConsolidatedInvoice({
+          parentAccountId: 'parent-id',
+          periodStart: new Date('2026-01-01'),
+          periodEnd: new Date('2026-01-31'),
+          includeChildren: false,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should generate invoice without seat count info in line description', async () => {
+      const parentAccount = {
+        id: 'parent-id',
+        accountName: 'Parent Corp',
+        currency: 'USD',
+        paymentTermsDays: 30,
+        creditHold: false,
+        deletedAt: null,
+      };
+
+      // Contract without seatCount => description won't have "(N seats)"
+      const fixedValueContracts = [
+        {
+          id: 'contract-fixed',
+          contractNumber: 'CNT-FIXED',
+          accountId: 'parent-id',
+          status: 'active',
+          contractValue: new Decimal(12000),
+          billingFrequency: 'monthly',
+          seatCount: null,
+          seatPrice: null,
+          account: { id: 'parent-id', accountName: 'Parent Corp' },
+          shares: [],
+        },
+      ];
+
+      const createdInvoice = {
+        id: 'invoice-fixed',
+        invoiceNumber: 'INV-202601-00001',
+        total: new Decimal(12000),
+      };
+
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(parentAccount as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]);
+      jest
+        .spyOn(prisma.contract, 'findMany')
+        .mockResolvedValueOnce(fixedValueContracts as any);
+      jest.spyOn(prisma.invoice, 'count').mockResolvedValueOnce(0);
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          invoice: {
+            create: jest.fn().mockResolvedValueOnce(createdInvoice),
+          },
+          invoiceItem: {
+            createMany: jest.fn().mockResolvedValueOnce({ count: 1 }),
+          },
+        };
+        return callback(mockTx);
+      });
+
+      const result = await service.generateConsolidatedInvoice({
+        parentAccountId: 'parent-id',
+        periodStart: new Date('2026-01-01'),
+        periodEnd: new Date('2026-01-31'),
+        includeChildren: false,
+      });
+
+      expect(result.invoiceId).toBe('invoice-fixed');
+    });
+
+    it('should throw NotFoundException if parent account is soft-deleted', async () => {
+      const deletedAccount = {
+        id: 'parent-id',
+        deletedAt: new Date(),
+        creditHold: false,
+      };
+
+      jest
+        .spyOn(prisma.account, 'findUnique')
+        .mockResolvedValueOnce(deletedAccount as any);
+
+      await expect(
+        service.generateConsolidatedInvoice({
+          parentAccountId: 'parent-id',
+          periodStart: new Date('2026-01-01'),
+          periodEnd: new Date('2026-01-31'),
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should stop descendant traversal at maxDepth (5 levels)', async () => {
+      // This test exercises the `if (currentDepth >= maxDepth) return []` branch (line 216)
+      // by using a mockImplementation that tracks call depth and simulates 5 levels of accounts
+      const parentAccount = {
+        id: 'parent-id',
+        accountName: 'Root Corp',
+        currency: 'USD',
+        paymentTermsDays: 30,
+        creditHold: false,
+        deletedAt: null,
+      };
+
+      // Directly replace prisma.account.findMany with a counter-based implementation
+      // to avoid spy-stacking issues from previous tests in this suite.
+      let findManyCallCount = 0;
+      const childrenByCall: any[][] = [
+        [{ id: 'l1', accountName: 'L1', parentAccountId: 'parent-id' }],
+        [{ id: 'l2', accountName: 'L2', parentAccountId: 'l1' }],
+        [{ id: 'l3', accountName: 'L3', parentAccountId: 'l2' }],
+        [{ id: 'l4', accountName: 'L4', parentAccountId: 'l3' }],
+        [{ id: 'l5', accountName: 'L5', parentAccountId: 'l4' }],
+      ];
+
+      // Save the original and replace directly on the mock object
+      const originalFindUnique = mockPrismaService.account.findUnique;
+      const originalFindMany = mockPrismaService.account.findMany;
+
+      mockPrismaService.account.findUnique = jest.fn().mockResolvedValue(parentAccount);
+      mockPrismaService.account.findMany = jest.fn().mockImplementation(() => {
+        const result = childrenByCall[findManyCallCount] ?? [];
+        findManyCallCount++;
+        return Promise.resolve(result);
+      });
+
+      const contracts = [
+        {
+          id: 'contract-root',
+          contractNumber: 'CNT-ROOT',
+          accountId: 'parent-id',
+          status: 'active',
+          contractValue: new Decimal(12000),
+          billingFrequency: 'monthly',
+          seatCount: 3,
+          seatPrice: new Decimal(500),
+          account: { id: 'parent-id', accountName: 'Root Corp' },
+          shares: [],
+        },
+      ];
+
+      const createdInvoice = {
+        id: 'invoice-deep',
+        invoiceNumber: 'INV-202601-00001',
+        total: new Decimal(1500),
+      };
+
+      mockPrismaService.contract.findMany = jest.fn().mockResolvedValue(contracts);
+      mockPrismaService.invoice.count = jest.fn().mockResolvedValue(0);
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          invoice: { create: jest.fn().mockResolvedValueOnce(createdInvoice) },
+          invoiceItem: { createMany: jest.fn().mockResolvedValueOnce({ count: 1 }) },
+        };
+        return callback(mockTx);
+      });
+
+      const result = await service.generateConsolidatedInvoice({
+        parentAccountId: 'parent-id',
+        periodStart: new Date('2026-01-01'),
+        periodEnd: new Date('2026-01-31'),
+        includeChildren: true,
+      });
+
+      // Restore the original mocks
+      mockPrismaService.account.findUnique = originalFindUnique;
+      mockPrismaService.account.findMany = originalFindMany;
+
+      expect(result.invoiceId).toBe('invoice-deep');
+      // 5 levels of descendants included (l1, l2, l3, l4, l5)
+      expect(result.subsidiariesIncluded).toBe(5);
+      // Verify exactly 5 findMany calls (one per depth level 0-4; depth 5 exits early)
+      expect(findManyCallCount).toBe(5);
+    });
+
+    it('should handle quarterly billing frequency in calculateContractAmount', async () => {
+      // This test exercises the `frequency === "quarterly"` branch (line 276)
+      const parentAccount = {
+        id: 'parent-id',
+        accountName: 'Parent Corp',
+        currency: 'USD',
+        paymentTermsDays: 30,
+        creditHold: false,
+        deletedAt: null,
+      };
+
+      const quarterlyContracts = [
+        {
+          id: 'contract-q',
+          contractNumber: 'CNT-Q',
+          accountId: 'parent-id',
+          status: 'active',
+          contractValue: new Decimal(30000),
+          billingFrequency: 'quarterly',
+          seatCount: null,
+          seatPrice: null,
+          account: { id: 'parent-id', accountName: 'Parent Corp' },
+          shares: [],
+        },
+      ];
+
+      const createdInvoice = {
+        id: 'invoice-quarterly',
+        invoiceNumber: 'INV-202601-00002',
+        total: new Decimal(10000),
+      };
+
+      jest.spyOn(prisma.account, 'findUnique').mockResolvedValueOnce(parentAccount as any);
+      jest.spyOn(prisma.account, 'findMany').mockResolvedValueOnce([]);
+      jest.spyOn(prisma.contract, 'findMany').mockResolvedValueOnce(quarterlyContracts as any);
+      jest.spyOn(prisma.invoice, 'count').mockResolvedValueOnce(1);
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          invoice: { create: jest.fn().mockResolvedValueOnce(createdInvoice) },
+          invoiceItem: { createMany: jest.fn().mockResolvedValueOnce({ count: 1 }) },
+        };
+        return callback(mockTx);
+      });
+
+      const result = await service.generateConsolidatedInvoice({
+        parentAccountId: 'parent-id',
+        periodStart: new Date('2026-01-01'),
+        periodEnd: new Date('2026-01-31'),
+        includeChildren: false,
+      });
+
+      expect(result.invoiceId).toBe('invoice-quarterly');
+    });
+
     it('should generate invoice for parent only when includeChildren is false', async () => {
       const parentAccount = {
         id: 'parent-id',

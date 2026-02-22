@@ -80,6 +80,14 @@ describe('QueryParser', () => {
       const result = parsePaginationParams(query);
       expect(result.offset).toBe(0);
     });
+
+    it('should reset negative limit to default 20', () => {
+      // parseInt('-1') = -1 (truthy), so -1 || 20 = -1 (limit = -1),
+      // then the `if (limit < 1) limit = 20` branch is triggered
+      const query = { 'limit[eq]': '-1' };
+      const result = parsePaginationParams(query);
+      expect(result.limit).toBe(20);
+    });
   });
 
   describe('parseQueryFilters', () => {
@@ -126,6 +134,15 @@ describe('QueryParser', () => {
       const result = parseQueryFilters(query);
       expect(result).toEqual([
         { field: 'status', operator: 'in', value: ['active', 'pending'] },
+      ]);
+    });
+
+    it('should handle IN operator when value is not a string (e.g., already an array)', () => {
+      // Tests the `typeof value !== 'string'` branch on line 79: wraps in array
+      const query = { 'status[in]': ['active', 'pending'] };
+      const result = parseQueryFilters(query);
+      expect(result).toEqual([
+        { field: 'status', operator: 'in', value: [['active', 'pending']] },
       ]);
     });
 
@@ -457,6 +474,13 @@ describe('QueryParser', () => {
       expect(result.where.AND[0].createdAt.gte).toBeInstanceOf(Date);
       expect(result.where.AND[1].createdAt.lte).toBeInstanceOf(Date);
       expect(result.where.AND[2].total.gte).toBe(1000);
+    });
+
+    it('should return empty object for unknown operator (default case)', () => {
+      // Force an unknown operator via type cast to cover the default branch
+      const filter = { field: 'status', operator: 'unknown', value: 'test' } as unknown as QueryFilter;
+      const result = filterToPrismaWhere(filter);
+      expect(result).toEqual({});
     });
   });
 });

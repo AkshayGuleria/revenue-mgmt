@@ -15,11 +15,13 @@ import { DataTable, type Column } from "~/components/data-table";
 import { useInvoice } from "~/lib/api/hooks/use-invoices";
 import { Edit, FileText, Send, DollarSign } from "lucide-react";
 import type { InvoiceItem } from "~/types/models";
+import { useConfigStore } from "~/lib/stores/config-store";
 
 export default function InvoiceDetailsRoute() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data, isLoading } = useInvoice(id!);
+  const { defaultCurrency } = useConfigStore();
 
   const invoice = data?.data;
 
@@ -49,7 +51,7 @@ export default function InvoiceDetailsRoute() {
       cell: (item) => (
         <CurrencyDisplay
           amount={item.unitPrice}
-          currency={invoice?.currency || "USD"}
+          currency={invoice?.currency || defaultCurrency}
         />
       ),
     },
@@ -60,7 +62,7 @@ export default function InvoiceDetailsRoute() {
         item.discountAmount ? (
           <CurrencyDisplay
             amount={item.discountAmount}
-            currency={invoice?.currency || "USD"}
+            currency={invoice?.currency || defaultCurrency}
           />
         ) : (
           "-"
@@ -73,7 +75,7 @@ export default function InvoiceDetailsRoute() {
         item.taxAmount ? (
           <CurrencyDisplay
             amount={item.taxAmount}
-            currency={invoice?.currency || "USD"}
+            currency={invoice?.currency || defaultCurrency}
           />
         ) : (
           "-"
@@ -85,7 +87,7 @@ export default function InvoiceDetailsRoute() {
       cell: (item) => (
         <CurrencyDisplay
           amount={item.lineTotal}
-          currency={invoice?.currency || "USD"}
+          currency={invoice?.currency || defaultCurrency}
         />
       ),
     },
